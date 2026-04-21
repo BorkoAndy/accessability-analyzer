@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A11y Analyzer</title>
+<style>
+  /* ── Reset & base ────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #f4f5f7;
+    --surface:  #ffffff;
+    --border:   #e1e4e8;
+    --text:     #1a1d23;
+    --muted:    #6b7280;
+    --accent:   #2563eb;
+    --red:      #dc2626;
+    --orange:   #d97706;
+    --green:    #16a34a;
+    --blue:     #2563eb;
+    --purple:   #7c3aed;
+    --sidebar:  280px;
+    --radius:   8px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────── */
+  #topbar {
+    background: #1a1d23;
+    color: #fff;
+    padding: 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  #topbar .logo {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  #topbar .logo svg { flex-shrink: 0; }
+  #url-form {
+    display: flex;
+    flex: 1;
+    gap: 6px;
+    max-width: 700px;
+  }
+  #url-input {
+    flex: 1;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1.5px solid #374151;
+    background: #111827;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #url-input:focus { border-color: var(--accent); }
+  #url-input::placeholder { color: #6b7280; }
+  .topbtn {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s, background 0.15s;
+  }
+  .topbtn:disabled { opacity: 0.45; cursor: not-allowed; }
+  #btn-analyze { background: var(--accent); color: #fff; }
+  #btn-analyze:hover:not(:disabled) { background: #1d4ed8; }
+  #btn-html { background: #374151; color: #d1d5db; }
+  #btn-html:hover { background: #4b5563; }
+
+  /* ── Body layout ─────────────────────────────────────── */
+  #body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────── */
+  #sidebar {
+    width: var(--sidebar);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  #sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .stab {
+    flex: 1;
+    padding: 10px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    user-select: none;
+    transition: color 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .stab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  #sidebar-content { overflow-y: auto; flex: 1; }
+
+  /* ── Score cards ─────────────────────────────────────── */
+  .score-section { padding: 12px; }
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .score-card {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .score-card .sc-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .score-card .sc-num { font-size: 26px; font-weight: 700; line-height: 1; }
+  .score-card .sc-num.good  { color: var(--green); }
+  .score-card .sc-num.warn  { color: var(--orange); }
+  .score-card .sc-num.bad   { color: var(--red); }
+
+  /* ── WAVE-style category summary ─────────────────────── */
+  .wave-cats { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .wave-cat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.12s;
+  }
+  .wave-cat:hover { background: var(--bg); }
+  .wave-cat.active { border-color: var(--border); background: var(--bg); }
+  .wave-cat .wc-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .wave-cat .wc-label { font-size: 12px; font-weight: 600; flex: 1; }
+  .wave-cat .wc-count { font-size: 18px; font-weight: 700; }
+  .wc-errors   .wc-icon { background: #fef2f2; }
+  .wc-alerts   .wc-icon { background: #fffbeb; }
+  .wc-passes   .wc-icon { background: #f0fdf4; }
+  .wc-review   .wc-icon { background: #eff6ff; }
+  .wc-errors   .wc-count { color: var(--red); }
+  .wc-alerts   .wc-count { color: var(--orange); }
+  .wc-passes   .wc-count { color: var(--green); }
+  .wc-review   .wc-count { color: var(--blue); }
+
+  /* ── Main content ─────────────────────────────────────── */
+  #main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ── Issue cards ─────────────────────────────────────── */
+  .issue-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .issue-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .issue-header:hover { background: #fafafa; }
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 1px;
+  }
+  .b-critical { background: #fef2f2; color: #991b1b; }
+  .b-serious  { background: #fff7ed; color: #92400e; }
+  .b-moderate { background: #eff6ff; color: #1e40af; }
+  .b-minor    { background: #f9fafb; color: #374151; border: 1px solid #e5e7eb; }
+  .b-pass     { background: #f0fdf4; color: #166534; }
+  .b-review   { background: #eff6ff; color: #1e40af; }
+  .issue-title { font-size: 13px; font-weight: 600; flex: 1; line-height: 1.4; }
+  .issue-meta  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .chevron { color: var(--muted); font-size: 12px; flex-shrink: 0; transition: transform 0.2s; }
+  .chevron.open { transform: rotate(90deg); }
+
+  .issue-body { padding: 0 14px 14px; border-top: 1px solid var(--border); display: none; }
+  .issue-body.open { display: block; }
+
+  .issue-desc { font-size: 12px; color: var(--muted); margin: 10px 0 8px; line-height: 1.6; }
+  .wcag-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .wcag-tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .fix-box {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 8px;
+  }
+  .fix-box .fix-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+  .fix-box p { font-size: 12px; line-height: 1.6; color: var(--text); }
+  .snippets { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .snippet {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    background: #111827;
+    color: #e5e7eb;
+    padding: 8px 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.5;
+  }
+  .link-ext { font-size: 11px; color: var(--accent); text-decoration: none; margin-top: 8px; display: inline-block; }
+  .link-ext:hover { text-decoration: underline; }
+
+  /* ── States ──────────────────────────────────────────── */
+  #state-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    gap: 12px;
+    text-align: center;
+  }
+  #state-empty .big-icon { font-size: 48px; opacity: 0.3; }
+  #state-empty p { font-size: 13px; max-width: 280px; line-height: 1.6; }
+
+  #state-loading {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 14px;
+    color: var(--muted);
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #state-loading p { font-size: 13px; }
+
+  /* ── HTML modal ───────────────────────────────────────── */
+  #html-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #html-modal.open { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border-radius: 10px;
+    width: 600px;
+    max-width: 95vw;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-box h3 { font-size: 15px; font-weight: 600; }
+  .modal-box textarea {
+    width: 100%;
+    height: 220px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #f8fafc;
+    resize: vertical;
+    outline: none;
+    color: var(--text);
+  }
+  .modal-box textarea:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .mbtn {
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text);
+    transition: background 0.12s;
+  }
+  .mbtn:hover { background: var(--bg); }
+  .mbtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .mbtn.primary:hover { background: #1d4ed8; }
+
+  /* ── Section header ──────────────────────────────────── */
+  .section-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 4px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── Lighthouse panel ─────────────────────────────────── */
+  .lh-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+  .lh-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .lh-card .gauge {
+    width: 56px; height: 56px;
+    margin: 0 auto 8px;
+    position: relative;
+  }
+  .lh-card .gauge svg { transform: rotate(-90deg); }
+  .lh-card .gauge-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .lh-card .lh-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .perf-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .perf-table td { padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .perf-table td:first-child { color: var(--muted); width: 60%; }
+  .perf-table td:last-child { font-weight: 500; text-align: right; }
+
+  /* ── Responsive ──────────────────────────────────────── */
+  @media (max-width: 640px) {
+    #sidebar { width: 220px; }
+    .lh-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ───────────────────────────────────────────────── -->
+<div id="topbar">
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10" cy="10" r="9" stroke="#60a5fa" stroke-width="1.5"/>
+      <circle cx="10" cy="7" r="2.5" fill="#60a5fa"/>
+      <rect x="8.5" y="10.5" width="3" height="5.5" rx="1.5" fill="#60a5fa"/>
+    </svg>
+    A11y Analyzer
+  </div>
+  <div id="url-form">
+    <input id="url-input" type="url" placeholder="https://example.com — paste URL and press Analyze" spellcheck="false" />
+    <button class="topbtn" id="btn-html" onclick="openHtmlModal()">Paste HTML</button>
+    <button class="topbtn" id="btn-analyze" onclick="runAnalysis()">Analyze</button>
+  </div>
+</div>
+
+<!-- ── Body ──────────────────────────────────────────────────── -->
+<div id="body">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="sidebar-tabs">
+      <div class="stab active" onclick="switchSideTab('summary')" id="stab-summary">Summary</div>
+      <div class="stab" onclick="switchSideTab('lighthouse')" id="stab-lighthouse">Lighthouse</div>
+    </div>
+    <div id="sidebar-content">
+
+      <!-- Summary tab -->
+      <div id="tab-summary">
+        <div class="score-section">
+          <div class="score-grid" id="score-grid">
+            <div class="score-card" style="grid-column:1/-1">
+              <div class="sc-label">A11y Score</div>
+              <div class="sc-num" id="sc-score">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wave-cats" id="wave-cats">
+          <div class="wave-cat wc-errors active" onclick="filterIssues('errors')" id="cat-errors">
+            <div class="wc-icon">🔴</div>
+            <div class="wc-label">Errors</div>
+            <div class="wc-count" id="cnt-errors">0</div>
+          </div>
+          <div class="wave-cat wc-alerts" onclick="filterIssues('alerts')" id="cat-alerts">
+            <div class="wc-icon">🟡</div>
+            <div class="wc-label">Alerts</div>
+            <div class="wc-count" id="cnt-alerts">0</div>
+          </div>
+          <div class="wave-cat wc-passes" onclick="filterIssues('passes')" id="cat-passes">
+            <div class="wc-icon">🟢</div>
+            <div class="wc-label">Passing</div>
+            <div class="wc-count" id="cnt-passes">0</div>
+          </div>
+          <div class="wave-cat wc-review" onclick="filterIssues('review')" id="cat-review">
+            <div class="wc-icon">🔵</div>
+            <div class="wc-label">Needs review</div>
+            <div class="wc-count" id="cnt-review">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lighthouse tab -->
+      <div id="tab-lighthouse" style="display:none; padding:12px;">
+        <div id="lh-loading" style="color:var(--muted);font-size:12px;text-align:center;padding:20px 0">
+          Run an analysis on a URL to see Lighthouse scores
+        </div>
+        <div id="lh-content" style="display:none"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main panel -->
+  <div id="main">
+    <div id="state-empty">
+      <div class="big-icon">♿</div>
+      <p>Enter a URL or paste HTML above to run an accessibility audit with axe-core WCAG rules.</p>
+    </div>
+    <div id="state-loading">
+      <div class="spinner"></div>
+      <p id="loading-msg">Running axe-core audit…</p>
+    </div>
+    <div id="issue-list" style="display:none"></div>
+  </div>
+
+</div>
+
+<!-- ── HTML modal ─────────────────────────────────────────────── -->
+<div id="html-modal">
+  <div class="modal-box">
+    <h3>Paste HTML to analyze</h3>
+    <textarea id="html-textarea" placeholder="<!DOCTYPE html>&#10;<html>&#10;  <body>&#10;    <!-- your markup here -->&#10;  </body>&#10;</html>"></textarea>
+    <div class="modal-actions">
+      <button class="mbtn" onclick="closeHtmlModal()">Cancel</button>
+      <button class="mbtn primary" onclick="analyzeHtml()">Analyze HTML</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG — point this at your Vercel deployment ─────────────────
+const API_BASE = 'https://YOUR-PROJECT.vercel.app';
+// For local dev: const API_BASE = 'http://localhost:3000';
+
+// ── State ─────────────────────────────────────────────────────────
+let currentData   = null;
+let currentFilter = 'errors';
+let lhRequested   = false;
+
+// ── Helpers ───────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function scoreClass(n) {
+  if (n >= 90) return 'good';
+  if (n >= 50) return 'warn';
+  return 'bad';
+}
+
+function gaugeColor(n) {
+  if (n >= 90) return '#16a34a';
+  if (n >= 50) return '#d97706';
+  return '#dc2626';
+}
+
+function setLoading(msg = 'Running axe-core audit…') {
+  $('state-empty').style.display   = 'none';
+  $('state-loading').style.display = 'flex';
+  $('issue-list').style.display    = 'none';
+  $('loading-msg').textContent     = msg;
+  $('btn-analyze').disabled        = true;
+}
+
+function setError(msg) {
+  $('state-loading').style.display = 'none';
+  $('state-empty').style.display   = 'flex';
+  $('state-empty').querySelector('p').textContent = '⚠️ ' + msg;
+  $('btn-analyze').disabled = false;
+}
+
+function setResults(data) {
+  currentData = data;
+  $('state-loading').style.display = 'none';
+  $('state-empty').style.display   = 'none';
+  $('issue-list').style.display    = 'block';
+  $('btn-analyze').disabled        = false;
+
+  // Score
+  const s = data.score;
+  $('sc-score').textContent  = s;
+  $('sc-score').className    = 'sc-num ' + scoreClass(s);
+
+  // Counts
+  const sum = data.summary;
+  $('cnt-errors').textContent  = sum.errors;
+  $('cnt-alerts').textContent  = sum.alerts;
+  $('cnt-passes').textContent  = sum.passes;
+  $('cnt-review').textContent  = sum.needsReview;
+
+  filterIssues('errors');
+}
+
+// ── Filtering / rendering ─────────────────────────────────────────
+function filterIssues(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('.wave-cat').forEach(el => el.classList.remove('active'));
+  $('cat-' + cat).classList.add('active');
+
+  const list = $('issue-list');
+  list.innerHTML = '';
+
+  let items = [];
+  if (cat === 'errors') {
+    items = (currentData.violations || []).filter(v => ['critical','serious'].includes(v.impact));
+  } else if (cat === 'alerts') {
+    items = (currentData.violations || []).filter(v => ['moderate','minor'].includes(v.impact));
+  } else if (cat === 'passes') {
+    items = currentData.passes || [];
+  } else if (cat === 'review') {
+    items = currentData.incomplete || [];
+  }
+
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:3rem;color:var(--muted);font-size:13px';
+    empty.textContent = cat === 'passes' ? 'No passing checks found.' : 'No issues in this category. ✓';
+    list.appendChild(empty);
+    return;
+  }
+
+  const label = { errors: 'Errors', alerts: 'Alerts', passes: 'Passing checks', review: 'Needs review' }[cat];
+  const header = document.createElement('div');
+  header.className = 'section-header';
+  header.textContent = `${label} (${items.length})`;
+  list.appendChild(header);
+
+  items.forEach(item => {
+    list.appendChild(cat === 'passes' ? renderPass(item) : renderIssue(item, cat === 'review'));
+  });
+}
+
+function renderIssue(v, isReview = false) {
+  const card = document.createElement('div');
+  card.className = 'issue-card';
+
+  const impactClass = isReview ? 'b-review' : `b-${v.impact}`;
+  const impactLabel = isReview ? 'Review' : v.impact;
+
+  card.innerHTML = `
+    <div class="issue-header" onclick="toggleIssue(this)">
+      <span class="badge ${impactClass}">${impactLabel}</span>
+      <div style="flex:1">
+        <div class="issue-title">${escHtml(v.help || v.description)}</div>
+        <div class="issue-meta">${v.nodeCount} element${v.nodeCount !== 1 ? 's' : ''} affected · ${v.id}</div>
+      </div>
+      <span class="chevron">›</span>
+    </div>
+    <div class="issue-body">
+      <p class="issue-desc">${escHtml(v.description || '')}</p>
+      ${v.wcag && v.wcag.length ? `<div class="wcag-tags">${v.wcag.map(t => `<span class="wcag-tag">${t}</span>`).join('')}</div>` : ''}
+      ${v.fixes && v.fixes.length ? `
+        <div class="fix-box">
+          <div class="fix-label">How to fix</div>
+          <p>${v.fixes.map(f => escHtml(f)).join('<br>')}</p>
+        </div>` : ''}
+      ${v.snippets && v.snippets.length ? `
+        <div class="snippets">
+          ${v.snippets.map(s => `<div class="snippet">${escHtml(s)}</div>`).join('')}
+        </div>` : ''}
+      ${v.helpUrl ? `<a class="link-ext" href="${v.helpUrl}" target="_blank" rel="noopener">Learn more →</a>` : ''}
+    </div>`;
+  return card;
+}
+
+function renderPass(p) {
+  const card = document.createElement('div');
+  card.className = 'issue-card';
+  card.innerHTML = `
+    <div class="issue-header" onclick="toggleIssue(this)">
+      <span class="badge b-pass">Pass</span>
+      <div style="flex:1">
+        <div class="issue-title">${escHtml(p.description || p.id)}</div>
+        <div class="issue-meta">${p.nodeCount} element${p.nodeCount !== 1 ? 's' : ''} checked · ${p.id}</div>
+      </div>
+      <span class="chevron">›</span>
+    </div>
+    <div class="issue-body">
+      ${p.wcag && p.wcag.length ? `<div class="wcag-tags">${p.wcag.map(t => `<span class="wcag-tag">${t}</span>`).join('')}</div>` : ''}
+    </div>`;
+  return card;
+}
+
+function toggleIssue(header) {
+  const body    = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  const isOpen  = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ── Sidebar tabs ───────────────────────────────────────────────────
+function switchSideTab(tab) {
+  $('tab-summary').style.display   = tab === 'summary'   ? 'block' : 'none';
+  $('tab-lighthouse').style.display = tab === 'lighthouse' ? 'block' : 'none';
+  $('stab-summary').className    = 'stab' + (tab === 'summary'   ? ' active' : '');
+  $('stab-lighthouse').className = 'stab' + (tab === 'lighthouse' ? ' active' : '');
+
+  if (tab === 'lighthouse' && currentData && !lhRequested) {
+    const url = $('url-input').value.trim();
+    if (url) runLighthouse(url);
+  }
+}
+
+// ── Lighthouse ────────────────────────────────────────────────────
+async function runLighthouse(url) {
+  lhRequested = true;
+  $('lh-loading').style.display  = 'block';
+  $('lh-loading').textContent    = 'Running Lighthouse-style audit…';
+  $('lh-content').style.display  = 'none';
+
+  try {
+    const res  = await fetch(`${API_BASE}/api/lighthouse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderLighthouse(data);
+  } catch(e) {
+    $('lh-loading').textContent = '⚠️ ' + e.message;
+  }
+}
+
+function renderLighthouse(data) {
+  $('lh-loading').style.display  = 'none';
+  $('lh-content').style.display  = 'block';
+
+  const categories = [
+    { key: 'performance',   label: 'Performance' },
+    { key: 'accessibility', label: 'Accessibility' },
+    { key: 'bestPractices', label: 'Best Practices' },
+    { key: 'seo',           label: 'SEO' },
+  ];
+
+  const r = 24; // gauge circle radius
+  const circ = 2 * Math.PI * r;
+
+  const gauges = categories.map(c => {
+    const score = data.scores[c.key] ?? 0;
+    const dash  = circ * (score / 100);
+    const color = gaugeColor(score);
+    return `
+      <div class="lh-card">
+        <div class="gauge">
+          <svg viewBox="0 0 56 56" width="56" height="56">
+            <circle cx="28" cy="28" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="4"/>
+            <circle cx="28" cy="28" r="${r}" fill="none" stroke="${color}" stroke-width="4"
+              stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" stroke-linecap="round"/>
+          </svg>
+          <div class="gauge-num" style="color:${color}">${score}</div>
+        </div>
+        <div class="lh-label">${c.label}</div>
+      </div>`;
+  }).join('');
+
+  const perf = data.performance || {};
+  const perfRows = [
+    ['First Contentful Paint', perf.fcp   != null ? perf.fcp + ' ms'   : '—'],
+    ['Page Load Time',         perf.loadTime != null ? perf.loadTime + ' ms' : '—'],
+    ['Resources',              perf.resourceCount != null ? perf.resourceCount : '—'],
+    ['Transfer Size',          perf.transferSizeKB != null ? perf.transferSizeKB + ' KB' : '—'],
+    ['JS Heap',                perf.jsHeapMB != null ? perf.jsHeapMB + ' MB' : '—'],
+  ].map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+
+  const seo = data.seo || {};
+  const seoRows = [
+    ['Has title tag',   seo.hasTitle   ? '✅' : '❌'],
+    ['Has description', seo.hasDescription ? '✅' : '❌'],
+    ['Has viewport',    seo.hasViewport    ? '✅' : '❌'],
+    ['Single H1',       seo.h1Count === 1  ? '✅' : `❌ (${seo.h1Count})`],
+    ['Images with alt', seo.imgsWithoutAlt === 0 ? '✅' : `❌ (${seo.imgsWithoutAlt} missing)`],
+  ].map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+
+  const bp = data.bestPractices || {};
+  const bpRows = [
+    ['HTTPS',      bp.https    ? '✅' : '❌'],
+    ['Doctype',    bp.doctype  ? '✅' : '❌'],
+    ['No deprecated HTML', bp.deprecated === 0 ? '✅' : `❌ (${bp.deprecated})`],
+  ].map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+
+  $('lh-content').innerHTML = `
+    <div class="lh-grid">${gauges}</div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:8px">Performance metrics</div>
+    <table class="perf-table">${perfRows}</table>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:14px 0 8px">SEO checks</div>
+    <table class="perf-table">${seoRows}</table>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:14px 0 8px">Best practices</div>
+    <table class="perf-table">${bpRows}</table>
+  `;
+}
+
+// ── Analysis ──────────────────────────────────────────────────────
+async function runAnalysis() {
+  const url = $('url-input').value.trim();
+  if (!url) { $('url-input').focus(); return; }
+
+  setLoading('Fetching page and running axe-core audit…');
+  lhRequested = false;
+
+  try {
+    const res  = await fetch(`${API_BASE}/api/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    setResults(data);
+  } catch(e) {
+    setError(e.message);
+  }
+}
+
+async function analyzeHtml() {
+  const html = $('html-textarea').value.trim();
+  if (!html) return;
+
+  closeHtmlModal();
+  setLoading('Analyzing HTML with axe-core…');
+  lhRequested = false;
+
+  try {
+    const res  = await fetch(`${API_BASE}/api/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    setResults(data);
+  } catch(e) {
+    setError(e.message);
+  }
+}
+
+// ── HTML modal ────────────────────────────────────────────────────
+function openHtmlModal()  { $('html-modal').classList.add('open'); }
+function closeHtmlModal() { $('html-modal').classList.remove('open'); }
+
+$('html-modal').addEventListener('click', e => {
+  if (e.target === $('html-modal')) closeHtmlModal();
+});
+
+// ── Keyboard shortcut ─────────────────────────────────────────────
+$('url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runAnalysis();
+});
+</script>
+</body>
+</html>
