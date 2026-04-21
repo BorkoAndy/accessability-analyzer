@@ -1,15 +1,15 @@
 """
-/api/lighthouse.py
-Runs a lightweight Lighthouse-style audit via Playwright.
-Full Lighthouse needs Node; this endpoint runs the key a11y checks
-via axe-core + performance/SEO heuristics replicating Lighthouse categories.
-
-For a full Lighthouse score, also expose a Node serverless function (see README).
+/api/v1/lighthouse.py
+Runs a lightweight Lighthouse-style audit via Playwright (v1).
+Accepts POST with { url }
+Accepts GET with ?url=...
 """
 
 from http.server import BaseHTTPRequestHandler
 import json
 import time
+from urllib.parse import urlparse, parse_qs
+from lib.auth import check_auth
 
 AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js"
 
@@ -17,7 +17,7 @@ AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js"
 def _cors_headers():
     return {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json",
     }
@@ -38,8 +38,6 @@ def _run_lighthouse_style(url: str) -> dict:
         t_start = time.time()
         response = page.goto(url, wait_until="load", timeout=30_000)
         lcp_approx = (time.time() - t_start) * 1000  # rough LCP proxy
-
-        status_code = response.status if response else 0
 
         # Collect basic performance data
         perf = page.evaluate("""() => {
@@ -84,7 +82,6 @@ def _run_lighthouse_style(url: str) -> dict:
             const doctype = document.doctype !== null;
             const charset = document.characterSet;
             const deprecated = Array.from(document.querySelectorAll('marquee,blink,center,font,strike,tt')).length;
-            const consoleErrors = 0; // can't detect past errors
             return { https, doctype, charset, deprecated };
         }""")
 
@@ -162,7 +159,28 @@ class handler(BaseHTTPRequestHandler):
             self.send_header(k, v)
         self.end_headers()
 
+    def do_GET(self):
+        """Handle GET requests with ?url= query parameter."""
+        if not check_auth(self):
+            return
+        try:
+            query = urlparse(self.path).query
+            params = parse_qs(query)
+            url = params.get("url", [""])[0].strip()
+
+            if not url:
+                self._respond(400, {"error": "Provide 'url' parameter"})
+                return
+
+            result = _run_lighthouse_style(url)
+            self._respond(200, result)
+
+        except Exception as e:
+            self._respond(500, {"error": str(e)})
+
     def do_POST(self):
+        if not check_auth(self):
+            return
         try:
             length = int(self.headers.get("Content-Length", 0))
             body   = json.loads(self.rfile.read(length))

@@ -1,7 +1,8 @@
 """
-/api/analyze.py
-Main accessibility analysis endpoint.
+/api/v1/analyze.py
+Main accessibility analysis endpoint (v1).
 Accepts POST with { url } or { html }
+Accepts GET with ?url=...
 Returns axe-core violations, passes, incomplete + summary scores.
 """
 
@@ -9,7 +10,8 @@ from http.server import BaseHTTPRequestHandler
 import json
 import os
 import tempfile
-import base64
+from urllib.parse import urlparse, parse_qs
+from lib.auth import check_auth
 
 # ── axe-core CDN (pinned version, no npm needed) ──────────────────────────────
 AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js"
@@ -30,7 +32,7 @@ SEVERITY_ORDER = {"critical": 0, "serious": 1, "moderate": 2, "minor": 3}
 def _cors_headers():
     return {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json",
     }
@@ -178,7 +180,29 @@ class handler(BaseHTTPRequestHandler):
             self.send_header(k, v)
         self.end_headers()
 
+    def do_GET(self):
+        """Handle GET requests with ?url= query parameter."""
+        if not check_auth(self):
+            return
+        try:
+            query = urlparse(self.path).query
+            params = parse_qs(query)
+            url = params.get("url", [""])[0].strip()
+
+            if not url:
+                self._respond(400, {"error": "Provide 'url' parameter"})
+                return
+
+            raw = _run_axe(None, url, None)
+            result = _build_response(raw, url)
+            self._respond(200, result)
+
+        except Exception as e:
+            self._respond(500, {"error": str(e)})
+
     def do_POST(self):
+        if not check_auth(self):
+            return
         try:
             length  = int(self.headers.get("Content-Length", 0))
             body    = json.loads(self.rfile.read(length))

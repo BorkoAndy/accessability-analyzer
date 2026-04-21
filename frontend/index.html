@@ -397,6 +397,127 @@
   .perf-table td:first-child { color: var(--muted); width: 60%; }
   .perf-table td:last-child { font-weight: 500; text-align: right; }
 
+  /* ── Auth Overlay ────────────────────────────────────── */
+  #login-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(26, 29, 35, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s, visibility 0.4s;
+  }
+  #login-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  
+  .login-card {
+    background: var(--surface);
+    width: 100%;
+    max-width: 400px;
+    padding: 40px;
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    text-align: center;
+    transform: scale(1);
+    transition: transform 0.4s;
+  }
+  #login-overlay.hidden .login-card { transform: scale(0.95); }
+  
+  .login-icon {
+    width: 64px; height: 64px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--accent);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+  }
+  
+  .login-card h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+  .login-card p { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+  
+  .login-field { margin-bottom: 24px; text-align: left; }
+  .login-field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; padding-left: 4px; }
+  .login-field input {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 0.1em;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .login-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+  
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .login-btn:hover { background: #1d4ed8; }
+  .login-btn:active { transform: scale(0.98); }
+
+  /* ── Slider Verification ─────────────────────────────── */
+  #verify-container {
+    margin-top: 24px;
+    display: none;
+  }
+  .slider-track {
+    position: relative;
+    width: 100%;
+    height: 52px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    overflow: hidden;
+    user-select: none;
+  }
+  .slider-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .slider-handle {
+    position: relative;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    transition: background 0.2s;
+  }
+  .slider-handle:active { cursor: grabbing; }
+  .slider-track.verified { border-color: var(--green); background: rgba(22, 163, 74, 0.05); }
+  .slider-track.verified .slider-handle { background: var(--green); box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3); }
+
   /* ── Responsive ──────────────────────────────────────── */
   @media (max-width: 640px) {
     #sidebar { width: 220px; }
@@ -405,6 +526,22 @@
 </style>
 </head>
 <body>
+
+<!-- ── Login Overlay ─────────────────────────────────────────── -->
+<div id="login-overlay" class="hidden">
+  <div class="login-card">
+    <div class="login-icon">🔒</div>
+    <h2>Protected Access</h2>
+    <p>Please enter the password to use this tool.</p>
+    <form id="login-form">
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="login-btn">Unlock Tool</button>
+    </form>
+  </div>
+</div>
 
 <!-- ── Top bar ───────────────────────────────────────────────── -->
 <div id="topbar">
@@ -417,8 +554,9 @@
     A11y Analyzer
   </div>
   <div id="url-form">
-    <input id="url-input" type="url" placeholder="https://example.com — paste URL and press Analyze" spellcheck="false" />
+    <input id="url-input" type="url" placeholder="https://example.com" spellcheck="false" />
     <button class="topbtn" id="btn-html" onclick="openHtmlModal()">Paste HTML</button>
+    <!-- Analyze button hidden until verified if password active -->
     <button class="topbtn" id="btn-analyze" onclick="runAnalysis()">Analyze</button>
   </div>
 </div>
@@ -467,6 +605,16 @@
             <div class="wc-count" id="cnt-review">0</div>
           </div>
         </div>
+
+        <!-- Slider verification -->
+        <div id="verify-container" class="score-section" style="border-top:1px solid var(--border)">
+          <div class="section-header">Verification</div>
+          <div class="slider-track" id="slider-track">
+            <div class="slider-text" id="slider-text">Slide to Analyze</div>
+            <div class="slider-handle" id="slider-handle">→</div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Lighthouse tab -->
@@ -508,17 +656,203 @@
 </div>
 
 <script>
-// ── CONFIG — point this at your Vercel deployment ─────────────────
-const API_BASE = 'https://YOUR-PROJECT.vercel.app';
-// For local dev: const API_BASE = 'http://localhost:3000';
+// ── CONFIG ─────────────────────────────────────────────────────────
+const API_BASE = ''; // Uses relative paths for same-origin calls
 
 // ── State ─────────────────────────────────────────────────────────
 let currentData   = null;
 let currentFilter = 'errors';
 let lhRequested   = false;
+let isVerified    = false;
+let isAuthEnabled = false;
 
 // ── Helpers ───────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
+
+/**
+ * Authentication Management
+ */
+function getAuth() {
+  return localStorage.getItem('app_password');
+}
+
+function setAuth(password) {
+  localStorage.setItem('app_password', password);
+}
+
+function clearAuth() {
+  localStorage.removeItem('app_password');
+}
+
+async function checkServerAuth() {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/health`);
+    if (res.status === 401) {
+      isAuthEnabled = true;
+      const pass = getAuth();
+      if (!pass) {
+        showLogin();
+      } else {
+        // Try with saved pass
+        const testRes = await fetch(`${API_BASE}/api/v1/health`, {
+          headers: { 'X-API-Key': pass }
+        });
+        if (testRes.status === 401) {
+          clearAuth();
+          showLogin();
+        } else {
+          hideLogin();
+          showSlider();
+        }
+      }
+    } else {
+      // No auth required on server
+      hideLogin();
+      isAuthEnabled = false;
+      // Show analyze button immediately
+      $('btn-analyze').style.display = 'block';
+    }
+  } catch (e) {
+    console.error("Auth check failed", e);
+  }
+}
+
+function showLogin() {
+  $('login-overlay').classList.remove('hidden');
+  $('btn-analyze').style.display = 'none';
+}
+
+function hideLogin() {
+  $('login-overlay').classList.add('hidden');
+}
+
+function showSlider() {
+  if (isAuthEnabled) {
+    $('verify-container').style.display = 'block';
+    $('btn-analyze').style.display = 'none';
+  }
+}
+
+function initAuth() {
+  $('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const pass = $('login-password').value;
+    if (pass) {
+      setAuth(pass);
+      checkServerAuth();
+    }
+  });
+  checkServerAuth();
+}
+
+/**
+ * Slider Verification
+ */
+function initSlider() {
+  const track = $('slider-track');
+  const handle = $('slider-handle');
+  const text = $('slider-text');
+  const urlInput = $('url-input');
+
+  let isDragging = false;
+  let startX = 0;
+  let currentX = 0;
+
+  const startDrag = (e) => {
+    if (isVerified || (urlInput && !urlInput.value.trim() && !currentData)) return;
+    isDragging = true;
+    startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+    handle.style.transition = 'none';
+  };
+
+  const moveDrag = (e) => {
+    if (!isDragging) return;
+    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+    const maxDelta = track.clientWidth - handle.clientWidth - 8;
+    currentX = Math.max(0, Math.min(clientX - startX, maxDelta));
+    handle.style.transform = `translateX(${currentX}px)`;
+    text.style.opacity = 1 - (currentX / maxDelta);
+    if (currentX >= maxDelta) {
+      completeVerification();
+    }
+  };
+
+  const endDrag = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (!isVerified) {
+      handle.style.transition = 'transform 0.3s';
+      handle.style.transform = 'translateX(0px)';
+      text.style.opacity = 1;
+    }
+  };
+
+  const completeVerification = () => {
+    isVerified = true;
+    isDragging = false;
+    const maxDelta = track.clientWidth - handle.clientWidth - 8;
+    handle.style.transform = `translateX(${maxDelta}px)`;
+    track.classList.add('verified');
+    handle.textContent = '✓';
+    text.textContent = 'Verified';
+    text.style.opacity = 1;
+    text.style.color = 'var(--green)';
+    
+    // Show analysis button or trigger analysis
+    $('btn-analyze').style.display = 'block';
+    if (urlInput.value.trim()) runAnalysis();
+  };
+
+  handle.addEventListener('mousedown', startDrag);
+  window.addEventListener('mousemove', moveDrag);
+  window.addEventListener('mouseup', endDrag);
+  handle.addEventListener('touchstart', startDrag);
+  window.addEventListener('touchmove', moveDrag);
+  window.addEventListener('touchend', endDrag);
+}
+
+function resetVerification() {
+  isVerified = false;
+  const track = $('slider-track');
+  const handle = $('slider-handle');
+  const text = $('slider-text');
+  
+  if (isAuthEnabled) {
+    track.classList.remove('verified');
+    handle.style.transform = 'translateX(0px)';
+    handle.textContent = '→';
+    text.textContent = 'Slide to Analyze';
+    text.style.color = 'var(--muted)';
+    $('btn-analyze').style.display = 'none';
+  }
+}
+
+/**
+ * API Fetch Wrapper
+ */
+async function apiFetch(endpoint, options = {}) {
+  const password = getAuth();
+  if (isAuthEnabled && !password) {
+    showLogin();
+    throw new Error("Missing password");
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(isAuthEnabled ? { 'X-API-Key': password } : {}),
+    ...(options.headers || {})
+  };
+
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+  
+  if (res.status === 401) {
+    clearAuth();
+    showLogin();
+    throw new Error("Invalid password");
+  }
+  
+  return res;
+}
 
 function scoreClass(n) {
   if (n >= 90) return 'good';
@@ -545,6 +879,7 @@ function setError(msg) {
   $('state-empty').style.display   = 'flex';
   $('state-empty').querySelector('p').textContent = '⚠️ ' + msg;
   $('btn-analyze').disabled = false;
+  if (isAuthEnabled) resetVerification();
 }
 
 function setResults(data) {
@@ -696,9 +1031,8 @@ async function runLighthouse(url) {
   $('lh-content').style.display  = 'none';
 
   try {
-    const res  = await fetch(`${API_BASE}/api/lighthouse`, {
+    const res = await apiFetch(`/api/v1/lighthouse`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
     const data = await res.json();
@@ -707,74 +1041,6 @@ async function runLighthouse(url) {
   } catch(e) {
     $('lh-loading').textContent = '⚠️ ' + e.message;
   }
-}
-
-function renderLighthouse(data) {
-  $('lh-loading').style.display  = 'none';
-  $('lh-content').style.display  = 'block';
-
-  const categories = [
-    { key: 'performance',   label: 'Performance' },
-    { key: 'accessibility', label: 'Accessibility' },
-    { key: 'bestPractices', label: 'Best Practices' },
-    { key: 'seo',           label: 'SEO' },
-  ];
-
-  const r = 24; // gauge circle radius
-  const circ = 2 * Math.PI * r;
-
-  const gauges = categories.map(c => {
-    const score = data.scores[c.key] ?? 0;
-    const dash  = circ * (score / 100);
-    const color = gaugeColor(score);
-    return `
-      <div class="lh-card">
-        <div class="gauge">
-          <svg viewBox="0 0 56 56" width="56" height="56">
-            <circle cx="28" cy="28" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="4"/>
-            <circle cx="28" cy="28" r="${r}" fill="none" stroke="${color}" stroke-width="4"
-              stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" stroke-linecap="round"/>
-          </svg>
-          <div class="gauge-num" style="color:${color}">${score}</div>
-        </div>
-        <div class="lh-label">${c.label}</div>
-      </div>`;
-  }).join('');
-
-  const perf = data.performance || {};
-  const perfRows = [
-    ['First Contentful Paint', perf.fcp   != null ? perf.fcp + ' ms'   : '—'],
-    ['Page Load Time',         perf.loadTime != null ? perf.loadTime + ' ms' : '—'],
-    ['Resources',              perf.resourceCount != null ? perf.resourceCount : '—'],
-    ['Transfer Size',          perf.transferSizeKB != null ? perf.transferSizeKB + ' KB' : '—'],
-    ['JS Heap',                perf.jsHeapMB != null ? perf.jsHeapMB + ' MB' : '—'],
-  ].map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
-
-  const seo = data.seo || {};
-  const seoRows = [
-    ['Has title tag',   seo.hasTitle   ? '✅' : '❌'],
-    ['Has description', seo.hasDescription ? '✅' : '❌'],
-    ['Has viewport',    seo.hasViewport    ? '✅' : '❌'],
-    ['Single H1',       seo.h1Count === 1  ? '✅' : `❌ (${seo.h1Count})`],
-    ['Images with alt', seo.imgsWithoutAlt === 0 ? '✅' : `❌ (${seo.imgsWithoutAlt} missing)`],
-  ].map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
-
-  const bp = data.bestPractices || {};
-  const bpRows = [
-    ['HTTPS',      bp.https    ? '✅' : '❌'],
-    ['Doctype',    bp.doctype  ? '✅' : '❌'],
-    ['No deprecated HTML', bp.deprecated === 0 ? '✅' : `❌ (${bp.deprecated})`],
-  ].map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
-
-  $('lh-content').innerHTML = `
-    <div class="lh-grid">${gauges}</div>
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:8px">Performance metrics</div>
-    <table class="perf-table">${perfRows}</table>
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:14px 0 8px">SEO checks</div>
-    <table class="perf-table">${seoRows}</table>
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:14px 0 8px">Best practices</div>
-    <table class="perf-table">${bpRows}</table>
-  `;
 }
 
 // ── Analysis ──────────────────────────────────────────────────────
@@ -786,9 +1052,8 @@ async function runAnalysis() {
   lhRequested = false;
 
   try {
-    const res  = await fetch(`${API_BASE}/api/analyze`, {
+    const res = await apiFetch(`/api/v1/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
     const data = await res.json();
@@ -808,9 +1073,8 @@ async function analyzeHtml() {
   lhRequested = false;
 
   try {
-    const res  = await fetch(`${API_BASE}/api/analyze`, {
+    const res = await apiFetch(`/api/v1/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html })
     });
     const data = await res.json();
@@ -833,6 +1097,11 @@ $('html-modal').addEventListener('click', e => {
 $('url-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') runAnalysis();
 });
+
+// ── Initialize ────────────────────────────────────────────────────
+initAuth();
+initSlider();
+
 </script>
 </body>
 </html>
