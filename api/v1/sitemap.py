@@ -3,13 +3,15 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 import re
-import tldextract
 
 class handler:
     @staticmethod
-    def extract_main_domain(url):
-        ext = tldextract.extract(url)
-        return f"{ext.domain}.{ext.suffix}"
+    def get_clean_host(url):
+        """Returns host without www. prefix for safer matching."""
+        host = urlparse(url).netloc.lower()
+        if host.startswith('www.'):
+            return host[4:]
+        return host
 
     @staticmethod
     def do_POST(self):
@@ -30,10 +32,6 @@ class handler:
 
         try:
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
-            
-            # Use TLD extract to get the "root" domain of the input URL
-            input_domain = handler.extract_main_domain(url)
-            
             all_links = set()
             sitemaps_found = []
 
@@ -64,55 +62,53 @@ class handler:
                         try: soup = BeautifulSoup(resp.content, "xml")
                         except: soup = BeautifulSoup(resp.content, "html.parser")
                         for loc in soup.find_all("loc"):
-                            all_links.add(loc.text)
+                            all_links.add(loc.text.strip())
                 except: continue
 
             # ── 2. FAILSAFE CRAWLER ──
             if not all_links:
                 r_home = requests.get(url, timeout=10, headers=headers)
                 if r_home.status_code == 200:
-                    # IMPORTANT: Use the FINAL URL after redirects for all resolution!
                     final_url = r_home.url
-                    final_domain = handler.extract_main_domain(final_url)
+                    input_host = handler.get_clean_host(url)
+                    final_host = handler.get_clean_host(final_url)
+                    
                     h_soup = BeautifulSoup(r_home.content, "html.parser")
 
-                    # A. HTML Sitemap Link
-                    sm_candidates = h_soup.find_all('a', href=True, text=re.compile(r'sitemap', re.I))
-                    sm_candidates += h_soup.find_all('a', href=re.compile(r'sitemap', re.I))
-                    
+                    # A. HTML Sitemap Search
+                    sm_candidates = h_soup.find_all('a', href=True)
                     for a in sm_candidates:
-                        sm_url = urljoin(final_url, a['href'])
-                        try:
-                            r_sm = requests.get(sm_url, timeout=5, headers=headers)
-                            if r_sm.status_code == 200:
-                                sm_soup = BeautifulSoup(r_sm.content, "html.parser")
-                                for a_nav in sm_soup.find_all('a', href=True):
-                                    link = urljoin(sm_url, a_nav['href'])
-                                    if handler.extract_main_domain(link) in [input_domain, final_domain]:
-                                        all_links.add(link)
-                                break 
-                        except: continue
+                        href = a['href'].lower()
+                        text = a.get_text().lower()
+                        if 'sitemap' in href or 'sitemap' in text:
+                            sm_url = urljoin(final_url, a['href'])
+                            try:
+                                r_sm = requests.get(sm_url, timeout=5, headers=headers)
+                                if r_sm.status_code == 200:
+                                    sm_soup = BeautifulSoup(r_sm.content, "html.parser")
+                                    for a_nav in sm_soup.find_all('a', href=True):
+                                        link = urljoin(sm_url, a_nav['href'])
+                                        if handler.get_clean_host(link) in [input_host, final_host]:
+                                            all_links.add(link)
+                                    if all_links: break 
+                            except: continue
 
-                    # B. Navigation & General Links
+                    # B. Logic Fallback: Scrape ALL links but prioritize navigation/semantic structures
                     if not all_links:
-                        # Prioritize <nav> tags as per user request
-                        nav_tags = h_soup.find_all(['nav', 'header', 'footer'])
-                        target_tags = nav_tags if nav_tags else [h_soup]
-                        
-                        for container in target_tags:
-                            for a in container.find_all('a', href=True):
-                                link = urljoin(final_url, a['href'])
-                                # Extract parts to ignore anchors/parameters
-                                clean_url = link.split('#')[0].split('?')[0].rstrip('/')
-                                
-                                # Check if it's the same main domain (avoiding external noise)
-                                if handler.extract_main_domain(clean_url) in [input_domain, final_domain]:
-                                    # Avoid including the landing page itself
-                                    if clean_url != final_url.rstrip('/'):
-                                        all_links.add(clean_link if 'clean_link' in locals() else clean_url)
+                        for a in h_soup.find_all('a', href=True):
+                            link = urljoin(final_url, a['href'])
+                            # Sanitize: remove fragments/queries
+                            clean_url = link.split('#')[0].split('?')[0].rstrip('/')
+                            
+                            # Domain check: Allow if matches input or final redirected domain
+                            curr_host = handler.get_clean_host(clean_url)
+                            if curr_host in [input_host, final_host]:
+                                # Exclude redundant homepage links
+                                if clean_url != final_url.rstrip('/') and clean_url != base_input.rstrip('/'):
+                                    all_links.add(clean_url)
 
-            # Cleanup
-            junk = ('.xml', '.pdf', '.jpg', '.png', '.zip', '.docx', '.js', '.css')
+            # Cleanup: filter common non-page extensions
+            junk = ('.xml', '.pdf', '.jpg', '.png', '.gif', '.zip', '.docx', '.js', '.css', '.svg', '.mp4')
             results = sorted([u for u in all_links if not u.lower().endswith(junk)])
 
             response_data = {
