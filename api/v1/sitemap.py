@@ -65,8 +65,11 @@ class handler:
                 try:
                     resp = requests.get(s_url, timeout=10, headers=headers)
                     if resp.status_code == 200:
-                        # Use 'xml' parser if it looks like XML
-                        soup = BeautifulSoup(resp.content, "xml")
+                        # Use 'xml' parser (lxml) for better accuracy, fallback to html.parser if needed
+                        try:
+                            soup = BeautifulSoup(resp.content, "xml")
+                        except:
+                            soup = BeautifulSoup(resp.content, "html.parser")
                         
                         # Handle Sitemap Index (contains other sitemaps)
                         sitemaps = soup.find_all("sitemap")
@@ -77,7 +80,10 @@ class handler:
                                     # Follow nested sitemap
                                     nested_resp = requests.get(loc.text, timeout=5, headers=headers)
                                     if nested_resp.status_code == 200:
-                                        nested_soup = BeautifulSoup(nested_resp.content, "xml")
+                                        try:
+                                            nested_soup = BeautifulSoup(nested_resp.content, "xml")
+                                        except:
+                                            nested_soup = BeautifulSoup(nested_resp.content, "html.parser")
                                         for loc_tag in nested_soup.find_all("loc"):
                                             all_discovered_links.add(loc_tag.text)
                         
