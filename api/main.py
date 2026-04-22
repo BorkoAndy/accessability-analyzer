@@ -8,9 +8,9 @@ lib_path = os.path.join(v1_path, "lib")
 sys.path.insert(0, v1_path)
 sys.path.insert(0, lib_path)
 
-from health import handler as health_handler
-from analyze import handler as analyze_handler
-from lighthouse import handler as lighthouse_handler
+import health
+import analyze
+import lighthouse
 from urllib.parse import urlparse
 
 class handler(BaseHTTPRequestHandler):
@@ -28,14 +28,17 @@ class handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path.rstrip("/")
 
         if path == "/api/v1/health":
-            h = health_handler(self.request, self.client_address, self.server)
-            h.handle()
+            health.handler.do_GET(self)
         elif path == "/api/v1/analyze":
-            h = analyze_handler(self.request, self.client_address, self.server)
-            h.handle()
+            if self.command == "POST":
+                analyze.handler.do_POST(self)
+            else:
+                analyze.handler.do_GET(self)
         elif path == "/api/v1/lighthouse":
-            h = lighthouse_handler(self.request, self.client_address, self.server)
-            h.handle()
+            if self.command == "POST":
+                lighthouse.handler.do_POST(self)
+            else:
+                lighthouse.handler.do_GET(self)
         else:
             body = json.dumps({"error": "Not found", "path": path}).encode()
             self.send_response(404)
