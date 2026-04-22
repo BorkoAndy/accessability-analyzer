@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>A11y Analyzer | Protected</title>
+<title>A11y Analyzer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
@@ -16,202 +16,341 @@
     --muted: #94a3b8;
     --accent: #3b82f6;
     --accent-hover: #2563eb;
-    --error: #ef4444;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --green: #10b981;
+    --sidebar: 280px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-  body {
-    font-family: 'Outfit', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-
-  /* ── Background Blobs ── */
-  .blob {
-    position: absolute;
-    width: 400px;
-    height: 400px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
-    filter: blur(80px);
-    border-radius: 50%;
-    z-index: -1;
-    animation: move 20s infinite alternate;
-  }
-  @keyframes move {
-    from { transform: translate(-20%, -20%); }
-    to { transform: translate(20%, 20%); }
-  }
-
-  /* ── Login Card ── */
-  #login-card {
-    background: rgba(30, 41, 59, 0.7);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
-    width: 100%;
-    max-width: 420px;
-    padding: 48px;
-    border-radius: 32px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    text-align: center;
-  }
-
-  .icon-box {
-    width: 64px; height: 64px;
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
-    border-radius: 20px;
+  /* ── Auth Layer ── */
+  #auth-overlay {
+    position: fixed; inset: 0; z-index: 1000; background: var(--bg);
     display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 24px;
-    font-size: 28px;
-    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+  }
+  .auth-card {
+    background: var(--surface); padding: 48px; border-radius: 32px; border: 1px solid var(--border);
+    width: 100%; max-width: 400px; text-align: center;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
   }
 
-  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
-  p { color: var(--muted); font-size: 15px; margin-bottom: 32px; }
+  /* ── Main App Layout ── */
+  #app-shell { display: none; height: 100vh; flex-direction: column; }
 
-  .input-group { text-align: left; margin-bottom: 24px; }
-  label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 8px; margin-left: 4px; }
-  input {
-    width: 100%;
-    padding: 16px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    background: rgba(15, 23, 42, 0.5);
-    color: #fff;
-    font-size: 16px;
-    outline: none;
-    transition: all 0.2s;
-    text-align: center;
-    letter-spacing: 0.3em;
+  header { 
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    height: 60px; display: flex; align-items: center; padding: 0 24px; gap: 20px;
   }
-  input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-
-  button {
-    width: 100%;
-    padding: 16px;
-    border-radius: 16px;
-    border: none;
-    background: var(--accent);
-    color: #fff;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  .logo { font-weight: 700; font-size: 20px; display: flex; align-items: center; gap: 10px; color: var(--accent); }
+  
+  #url-form { flex: 1; display: flex; max-width: 800px; gap: 12px; }
+  input[type="url"] {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); padding: 0 16px; 
+    border-radius: 12px; color: #fff; font-size: 14px; outline: none;
   }
-  button:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3); }
-  button:active { transform: translateY(0); }
+  input:focus { border-color: var(--accent); }
+  .btn {
+    height: 38px; padding: 0 20px; border-radius: 12px; border: none; font-size: 14px; font-weight: 600; cursor: pointer;
+    background: var(--surface); color: var(--text); border: 1px solid var(--border); transition: all 0.2s;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .btn-primary { background: var(--accent); border: none; color: #fff; }
+  .btn:hover { background: var(--border); }
+  .btn-primary:hover { background: var(--accent-hover); }
 
-  #error-msg {
-    color: var(--error);
-    font-size: 13px;
-    margin-top: 16px;
-    display: none;
+  main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  aside { 
+    width: var(--sidebar); background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .aside-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .atab { 
+    flex: 1; padding: 12px; text-align: center; font-size: 11px; font-weight: 700; 
+    cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; 
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .atab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .aside-content { flex: 1; overflow-y: auto; padding: 20px; }
+  
+  .score-gauge {
+    width: 120px; height: 120px; margin: 0 auto 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: 8px solid var(--border); font-size: 28px; font-weight: 700;
+  }
+  .score-gauge.good { border-color: var(--green); color: var(--green); }
+  .score-gauge.warn { border-color: var(--orange); color: var(--orange); }
+  .score-gauge.bad { border-color: var(--red); color: var(--red); }
+
+  .category-list { display: flex; flex-direction: column; gap: 8px; }
+  .cat-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px;
+    cursor: pointer; background: var(--bg); border: 1px solid transparent; transition: all 0.1s;
+  }
+  .cat-item:hover { border-color: var(--border); }
+  .cat-item.active { background: var(--border); border-color: var(--accent); }
+  .cat-icon { font-size: 18px; }
+  .cat-label { flex: 1; font-size: 13px; font-weight: 600; }
+  .cat-count { font-weight: 700; }
+
+  /* ── Content Area ── */
+  #content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+
+  .status-empty { 
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+    color: var(--muted); gap: 16px; text-align: center;
+  }
+  .status-empty .icon { font-size: 64px; }
+
+  .issue-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 24px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .issue-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  .badge-red { background: rgba(239, 68, 68, 0.1); color: var(--red); }
+  .badge-orange { background: rgba(245, 158, 11, 0.1); color: var(--orange); }
+
+  h3 { font-size: 16px; margin-bottom: 4px; }
+  .desc { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  
+  .code-snip {
+    background: #000; color: #e5e7eb; padding: 16px; border-radius: 12px;
+    font-family: monospace; font-size: 12px; overflow-x: auto; margin-top: 8px;
   }
 
-  /* ── Success State ── */
-  #app-content { display: none; text-align: center; }
-  #app-content h2 { font-size: 24px; margin-bottom: 12px; }
+  /* ── Success/Gauges ── */
+  .gauge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
+  
+  @media (max-width: 900px) {
+    aside { display: none; }
+  }
 
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
-  <div class="blob" style="top: -10%; left: -10%;"></div>
-  <div class="blob" style="bottom: -10%; right: -10%; animation-delay: -5s;"></div>
-
-  <div id="login-container">
-    <div id="login-card">
-      <div class="icon-box">🔐</div>
-      <h1>Protected Access</h1>
-      <p>Please enter the password to unlock the tool.</p>
-      <form id="login-form">
-        <div class="input-group">
-          <label>Access Password</label>
-          <input type="password" id="password" placeholder="••••••••" required autofocus>
-        </div>
-        <button type="submit" id="submit-btn">Unlock Analyzer</button>
-        <div id="error-msg">Invalid password. Please try again.</div>
+  <!-- ── Authentication Layer ── -->
+  <div id="auth-overlay">
+    <div class="auth-card">
+      <div style="font-size: 48px; margin-bottom: 24px;">🔐</div>
+      <h1 style="margin-bottom: 8px;">Protected Access</h1>
+      <p style="color: var(--muted); font-size: 14px; margin-bottom: 32px;">Please enter the password to open the tool.</p>
+      <form id="auth-form">
+        <input type="password" id="auth-pass" placeholder="••••••••" style="width:100%; padding:16px; border-radius:16px; border:1px solid var(--border); background: var(--bg); color:#fff; text-align:center; margin-bottom:20px; outline:none;" required autofocus>
+        <button type="submit" class="btn btn-primary" style="width:100%; height:52px;">Unlock Tool</button>
+        <div id="auth-error" style="color:var(--red); font-size:13px; margin-top:16px; display:none;">Invalid password.</div>
       </form>
     </div>
   </div>
 
-  <div id="app-content">
-    <div style="font-size: 64px; margin-bottom: 24px;">🚀</div>
-    <h2>Access Granted</h2>
-    <p>The A11y Analyzer is unlocked.</p>
-    <button onclick="logout()" style="width: auto; margin-top: 24px; padding: 12px 24px; background: transparent; border: 1px solid var(--border);">Log Out</button>
+  <!-- ── Main Workspace ── -->
+  <div id="app-shell">
+    <header>
+      <div class="logo">♿ A11y Analyzer</div>
+      <form id="analyze-form" style="display:flex; gap:12px; flex:1; max-width:600px;">
+        <input id="url-input" type="url" placeholder="https://example.com" required style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:0 16px; color:#fff; outline:none;">
+        <button class="btn btn-primary" type="submit">Analyze</button>
+      </form>
+      <button class="btn" type="button" onclick="logout()" style="height:38px;">Logout</button>
+    </header>
+
+    <main>
+      <aside>
+        <div class="aside-tabs">
+          <div class="atab active" onclick="switchAsideTab('a11y', event)">AXE Summary</div>
+          <div class="atab" onclick="switchAsideTab('lh', event)">Lighthouse</div>
+        </div>
+        
+        <div class="aside-content" id="aside-a11y">
+          <div class="score-gauge" id="main-score">--</div>
+          <div class="category-list">
+            <div class="cat-item active" onclick="filterIssues('errors', event)">
+              <span class="cat-icon">🔴</span>
+              <span class="cat-label">Errors</span>
+              <span class="cat-count" id="cnt-errors">0</span>
+            </div>
+            <div class="cat-item" onclick="filterIssues('alerts', event)">
+              <span class="cat-icon">🟡</span>
+              <span class="cat-label">Alerts</span>
+              <span class="cat-count" id="cnt-alerts">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="aside-content" id="aside-lh" style="display:none">
+          <div id="lh-gauges">
+            <p style="color:var(--muted); text-align:center; padding-top:20px; font-size:13px;">Run analysis to see scores</p>
+          </div>
+        </div>
+      </aside>
+
+      <section id="content">
+        <div class="status-empty" id="empty-state">
+          <div class="icon">🔍</div>
+          <h2>Ready to Analyze</h2>
+          <p>Enter a URL above to run axe-core accessibility tests and performance audits.</p>
+        </div>
+
+        <div id="results-feed" style="display:none; width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <h2 id="results-title">Ax-Core Issues</h2>
+            <div id="results-active-url" style="color:var(--muted); font-size:12px;"></div>
+          </div>
+          <div id="issue-list" style="display:flex; flex-direction:column; gap:16px;"></div>
+        </div>
+      </section>
+    </main>
   </div>
 
 <script>
-  const API_BASE = '';
   const $ = id => document.getElementById(id);
+  
+  // ── Authentication ──
+  const APP_PASS_KEY = 'analyze_pass';
 
   async function checkAuth() {
-    const pass = localStorage.getItem('app_pass');
+    const pass = localStorage.getItem(APP_PASS_KEY);
     if (!pass) return;
+    
+    const ok = await verifyPass(pass);
+    if (ok) showApp();
+  }
 
+  async function verifyPass(pass) {
     try {
-      const res = await fetch(`${API_BASE}/api/verify`, {
-        headers: { 'X-API-Key': pass }
-      });
-      if (res.ok) {
-        showApp();
-      } else {
-        localStorage.removeItem('app_pass');
-      }
-    } catch (e) {
-      console.error("Auth check failed", e);
-    }
+      const res = await fetch('/api/verify', { headers: { 'X-API-Key': pass } });
+      return res.ok;
+    } catch (e) { return false; }
   }
 
   function showApp() {
-    $('login-container').style.display = 'none';
-    $('app-content').style.display = 'block';
-    document.title = 'A11y Analyzer | Unlocked';
+    $('auth-overlay').style.display = 'none';
+    $('app-shell').style.display = 'flex';
   }
 
   function logout() {
-    localStorage.removeItem('app_pass');
+    localStorage.removeItem(APP_PASS_KEY);
     location.reload();
   }
 
-  $('login-form').addEventListener('submit', async (e) => {
+  $('auth-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const pass = $('password').value;
-    const btn = $('submit-btn');
-    const err = $('error-msg');
-
-    btn.disabled = true;
-    btn.textContent = 'Verifying...';
-    err.style.display = 'none';
-
-    try {
-      const res = await fetch(`${API_BASE}/api/verify`, {
-        headers: { 'X-API-Key': pass }
-      });
-
-      if (res.ok) {
-        localStorage.setItem('app_pass', pass);
-        showApp();
-      } else {
-        err.style.display = 'block';
-        $('password').value = '';
-        $('password').focus();
-      }
-    } catch (err) {
-      alert("Verification failed. Check your connection.");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Unlock Analyzer';
+    const pass = $('auth-pass').value;
+    const ok = await verifyPass(pass);
+    if (ok) {
+      localStorage.setItem(APP_PASS_KEY, pass);
+      showApp();
+    } else {
+      $('auth-error').style.display = 'block';
+      $('auth-pass').value = '';
     }
   });
 
+  // ── Audit Logic ──
+  let auditData = null;
+
+  $('analyze-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = $('url-input').value;
+    if (!url) return;
+
+    $('empty-state').innerHTML = '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;"><div style="width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p>Running Analysis...</p></div>';
+    $('results-feed').style.display = 'none';
+    
+    // Initial MOCK CALL (Simulated Backend)
+    setTimeout(() => {
+      renderResults({
+        url: url,
+        score: 72,
+        stats: { errors: 2, alerts: 1 },
+        issues: [
+          { type: 'errors', impact: 'critical', title: 'Buttons must have discernible text', desc: 'Ensures buttons have discernible text so that they can be read by screen readers.', code: '<button class="nav-toggle"></button>' },
+          { type: 'errors', impact: 'serious', title: 'ID attribute value must be unique', desc: 'Ensures every id attribute value is unique to prevent accessibility issues with screen readers.', code: '<div id="sidebar"></div>' },
+          { type: 'alerts', impact: 'moderate', title: 'Image missing alt text', desc: 'Images should have alternative text to describe their content.', code: '<img src="logo.png">' }
+        ],
+        lh: { performance: 85, accessibility: 92, bestPractices: 100, seo: 100 }
+      });
+    }, 1200);
+  });
+
+  function renderResults(data) {
+    auditData = data;
+    $('empty-state').style.display = 'none';
+    $('results-feed').style.display = 'block';
+    
+    const mainScore = $('main-score');
+    mainScore.textContent = data.score;
+    mainScore.className = `score-gauge ${data.score > 90 ? 'good' : data.score > 50 ? 'warn' : 'bad'}`;
+
+    $('cnt-errors').textContent = data.stats.errors;
+    $('cnt-alerts').textContent = data.stats.alerts;
+    $('results-active-url').textContent = data.url;
+
+    renderIssues('errors');
+    renderLighthouse();
+  }
+
+  function renderIssues(type) {
+    const list = $('issue-list');
+    list.innerHTML = '';
+    
+    const filtered = auditData.issues.filter(i => i.type === type);
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px;">No issues found in this category.</p>';
+      return;
+    }
+
+    filtered.forEach(issue => {
+      const card = document.createElement('div');
+      card.className = 'issue-card';
+      card.innerHTML = `
+        <div class="issue-meta">
+          <span class="badge ${issue.impact === 'critical' || issue.impact === 'serious' ? 'badge-red' : 'badge-orange'}">${issue.impact}</span>
+          <span>axe-core rule</span>
+        </div>
+        <h3>${issue.title}</h3>
+        <p class="desc">${issue.desc}</p>
+        <div class="code-snip">${issue.code.replace(/</g, '&lt;')}</div>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  function renderLighthouse() {
+    const container = $('lh-gauges');
+    container.innerHTML = `
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        ${Object.entries(auditData.lh).map(([k, v]) => `
+          <div style="text-align:center; background:var(--bg); padding:16px; border-radius:12px; border:1px solid var(--border);">
+            <div style="font-size:20px; font-weight:700; color:${v > 90 ? 'var(--green)' : 'var(--orange)'}">${v}</div>
+            <div style="font-size:9px; text-transform:uppercase; color:var(--muted); font-weight:700; margin-top:4px;">${k === 'bestPractices' ? 'Best Practices' : k}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function switchAsideTab(tab, event) {
+    document.querySelectorAll('.atab').forEach(t => t.classList.toggle('active', false));
+    event.target.classList.add('active');
+    $('aside-a11y').style.display = tab === 'a11y' ? 'block' : 'none';
+    $('aside-lh').style.display = tab === 'lh' ? 'block' : 'none';
+  }
+
+  function filterIssues(type, event) {
+    document.querySelectorAll('.cat-item').forEach(i => i.classList.toggle('active', false));
+    event.currentTarget.classList.add('active');
+    renderIssues(type);
+  }
+
+  // Init
   checkAuth();
 </script>
 </body>
