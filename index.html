@@ -265,6 +265,7 @@
     if (!url || !pass) return;
 
     $('empty-state').innerHTML = '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;"><div style="width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p>Performing A11y Audit (axe-core)...</p></div>';
+    $('lh-gauges').innerHTML = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; gap:12px;"><div style="width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p style="font-size:12px; color:var(--muted);">Auditing Performance...</p></div>';
     $('results-feed').style.display = 'none';
     
     try {
@@ -283,23 +284,30 @@
       renderResults(data);
 
       // 2. Run Lighthouse Heuristics (Background)
-      const lhRes = await fetch('/api/v1/lighthouse', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-API-Key': pass 
-        },
-        body: JSON.stringify({ url })
-      });
-      if (lhRes.ok) {
-        const lhData = await lhRes.json();
-        auditData.lh = lhData.scores;
-        auditData.lhAudits = lhData.audits;
-        renderLighthouse();
+      try {
+        const lhRes = await fetch('/api/v1/lighthouse', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-API-Key': pass 
+          },
+          body: JSON.stringify({ url })
+        });
+        if (lhRes.ok) {
+          const lhData = await lhRes.json();
+          auditData.lh = lhData.scores;
+          auditData.lhAudits = lhData.audits;
+          renderLighthouse();
+        } else {
+          throw new Error();
+        }
+      } catch (lhErr) {
+        $('lh-gauges').innerHTML = '<p style="color:var(--red); font-size:12px; text-align:center; padding:20px;">Lighthouse audit failed.</p>';
       }
 
     } catch (err) {
       $('empty-state').innerHTML = `<div class="icon">❌</div><h2>Analysis Failed</h2><p>${err.message}</p><button class="btn" onclick="location.reload()" style="margin-top:16px;">Try Again</button>`;
+      $('lh-gauges').innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; font-size:12px;">Run analysis to see scores</p>';
     }
   });
 
