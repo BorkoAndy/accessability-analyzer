@@ -340,13 +340,13 @@
         body: JSON.stringify({ url })
       });
       const data = await res.json();
-      if (data.urls) {
+      if (res.ok && data.urls) {
         renderSitemap(data);
       } else {
-        alert('No sitemap found for this domain.');
+        alert(data.error || 'No sitemap found for this domain.');
       }
     } catch (e) {
-      alert('Failed to load sitemap.');
+      alert('Network error: Failed to reach sitemap engine.');
     } finally {
       $('sitemap-btn').textContent = '🗺️ Sitemap';
     }
