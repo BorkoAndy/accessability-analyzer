@@ -4,7 +4,9 @@ import sys
 import os
 
 v1_path = os.path.join(os.path.dirname(__file__), "v1")
+lib_path = os.path.join(v1_path, "lib")
 sys.path.insert(0, v1_path)
+sys.path.insert(0, lib_path)
 
 import_errors = {}
 
