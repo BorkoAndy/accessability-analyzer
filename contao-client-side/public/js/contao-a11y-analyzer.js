@@ -14,16 +14,10 @@
         const tlButtons = document.getElementById('tl_buttons');
         if (!tlButtons) return;
 
-        const ul = tlButtons.querySelector('ul');
-        if (!ul) return;
-
         // If the button is already perfectly in place, do nothing. 
         // This solves the issue of Contao rewriting the HTML and blowing away our button.
         if (document.getElementById('a11y-analyzer-action')) return;
 
-        const li = document.createElement('li');
-        li.id = 'a11y-analyzer-action';
-        
         // Create the button as an anchor tag to fit the header nicely
         const btn = document.createElement('a');
         btn.href = '#';
@@ -116,13 +110,31 @@
             }
         });
 
-        li.appendChild(btn);
-
-        // Insert after the first child (usually "Go back")
-        if (ul.children.length > 0) {
-            ul.insertBefore(li, ul.children[1]);
+        // Smart Injection: Detect Contao Version Structure
+        const ul = tlButtons.querySelector('ul');
+        
+        if (ul) {
+            // Contao 5.7+ (ul/li operations submenu structure)
+            const li = document.createElement('li');
+            li.id = 'a11y-analyzer-action';
+            li.appendChild(btn);
+            
+            if (ul.children.length > 0) {
+                ul.insertBefore(li, ul.children[1]);
+            } else {
+                ul.appendChild(li);
+            }
         } else {
-            ul.appendChild(li);
+            // Contao < 5.7 (Flat anchors directly inside #tl_buttons)
+            btn.id = 'a11y-analyzer-action';
+            
+            if (tlButtons.children.length > 0) {
+                // Insert directly after the first element (usually "Go back")
+                const nextEl = tlButtons.children[1] || null;
+                tlButtons.insertBefore(btn, nextEl);
+            } else {
+                tlButtons.appendChild(btn);
+            }
         }
     }
 
