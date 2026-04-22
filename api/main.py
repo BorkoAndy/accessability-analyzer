@@ -1,39 +1,32 @@
+from http.server import BaseHTTPRequestHandler
+import json
 import sys
 import os
-
-# Add v1 folder to path so imports work
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "v1"))
-# Add v1/lib folder too
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "v1", "lib"))
-
-from analyze import handler as analyze_handler
-from health import handler as health_handler
-from lighthouse import handler as lighthouse_handler
+import traceback
 
 class handler(BaseHTTPRequestHandler):
 
-    def do_OPTIONS(self):
-        self._route()
-
     def do_GET(self):
-        self._route()
-
-    def do_POST(self):
-        self._route()
-
-    def _route(self):
-        path = urlparse(self.path).path.rstrip("/")
-
-        if path.endswith("/analyze"):
-            analyze_handler(self.request, self.client_address, self.server).handle()
-        elif path.endswith("/lighthouse"):
-            lighthouse_handler(self.request, self.client_address, self.server).handle()
-        elif path.endswith("/health"):
-            health_handler(self.request, self.client_address, self.server).handle()
-        else:
-            self.send_response(404)
+        try:
+            body = json.dumps({
+                "status": "ok",
+                "python": sys.version,
+                "cwd": os.getcwd(),
+                "dir": os.listdir(os.path.dirname(__file__)),
+                "sys_path": sys.path,
+            }).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "Not found"}).encode())
+            self.wfile.write(body)
+        except Exception as e:
+            err = traceback.format_exc().encode()
+            self.send_response(500)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(err)))
+            self.end_headers()
+            self.wfile.write(err)
 
     def log_message(self, *args):
         pass
