@@ -11,6 +11,7 @@ sys.path.insert(0, v1_path)
 import health
 import analyze
 import lighthouse
+import sitemap
 
 class handler(BaseHTTPRequestHandler):
 
@@ -68,6 +69,12 @@ class handler(BaseHTTPRequestHandler):
                 elif path == "/api/v1/lighthouse":
                     if self.command == "POST":
                         lighthouse.handler.do_POST(self)
+                    else:
+                        self.send_response(405)
+                        self.end_headers()
+                elif path == "/api/v1/sitemap":
+                    if self.command == "POST":
+                        sitemap.handler.do_POST(self)
                     else:
                         self.send_response(405)
                         self.end_headers()

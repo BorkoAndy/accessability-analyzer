@@ -153,9 +153,10 @@
   <div id="app-shell">
     <header>
       <div class="logo">♿ A11y Analyzer</div>
-      <form id="analyze-form" style="display:flex; gap:12px; flex:1; max-width:600px;">
+      <form id="analyze-form" style="display:flex; gap:12px; flex:1; max-width:700px;">
         <input id="url-input" type="text" placeholder="example.com" required style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:0 16px; color:#fff; outline:none;">
         <button class="btn btn-primary" type="submit">Analyze</button>
+        <button class="btn" type="button" onclick="loadSitemap()" id="sitemap-btn">🗺️ Sitemap</button>
       </form>
       <button class="btn" type="button" onclick="logout()" style="height:38px;">Logout</button>
     </header>
@@ -204,6 +205,16 @@
           </div>
           <div id="issue-list" style="display:flex; flex-direction:column; gap:16px;"></div>
           <div id="lh-list" style="display:none; flex-direction:column; gap:16px;"></div>
+        </div>
+
+        <!-- Sitemap Explorer -->
+        <div id="sitemap-explorer" style="display:none; width:100%; animation: fadeIn 0.3s ease;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <h2>🗺️ Sitemap Explorer</h2>
+            <button class="btn" onclick="$('sitemap-explorer').style.display='none'; $('empty-state').style.display='flex'">Close</button>
+          </div>
+          <p style="color:var(--muted); margin-bottom:20px; font-size:14px;">Found <span id="sm-count">0</span> pages. Click any URL to run a fresh audit.</p>
+          <div id="sitemap-list" style="display:grid; grid-template-columns: 1fr; gap:8px; max-height:600px; overflow-y:auto; padding-right:10px;"></div>
         </div>
       </section>
     </main>
@@ -315,6 +326,60 @@
       $('lh-gauges').innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; font-size:12px;">Run analysis to see scores</p>';
     }
   });
+
+  async function loadSitemap() {
+    const url = $('url-input').value.trim();
+    const pass = localStorage.getItem(APP_PASS_KEY);
+    if (!url || !pass) return;
+
+    $('sitemap-btn').textContent = '⌛ Loading...';
+    try {
+      const res = await fetch('/api/v1/sitemap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': pass },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (data.urls) {
+        renderSitemap(data);
+      } else {
+        alert('No sitemap found for this domain.');
+      }
+    } catch (e) {
+      alert('Failed to load sitemap.');
+    } finally {
+      $('sitemap-btn').textContent = '🗺️ Sitemap';
+    }
+  }
+
+  function renderSitemap(data) {
+    $('empty-state').style.display = 'none';
+    $('results-feed').style.display = 'none';
+    $('sitemap-explorer').style.display = 'block';
+    $('sm-count').textContent = data.count;
+
+    const list = $('sitemap-list');
+    list.innerHTML = '';
+    data.urls.forEach(url => {
+      const item = document.createElement('div');
+      item.style.padding = '12px 16px';
+      item.style.background = 'var(--surface)';
+      item.style.border = '1px solid var(--border)';
+      item.style.borderRadius = '12px';
+      item.style.cursor = 'pointer';
+      item.style.fontSize = '13px';
+      item.style.overflow = 'hidden';
+      item.style.textOverflow = 'ellipsis';
+      item.style.whiteSpace = 'nowrap';
+      item.textContent = url;
+      item.onclick = () => {
+        $('url-input').value = url;
+        $('sitemap-explorer').style.display = 'none';
+        $('analyze-form').requestSubmit();
+      };
+      list.appendChild(item);
+    });
+  }
 
 
   function renderResults(data) {
