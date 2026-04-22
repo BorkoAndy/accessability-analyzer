@@ -1,4 +1,2 @@
-playwright
-asyncio
 requests
 beautifulsoup4

@@ -1,6 +1,6 @@
 import json
-import asyncio
-from playwright.async_api import async_playwright
+import requests
+from bs4 import BeautifulSoup
 import time
 
 class handler:
@@ -17,11 +17,41 @@ class handler:
         if not url:
             self.send_response(400)
             self.end_headers()
-            self.wfile.write(b'{"error": "URL required for Lighthouse scoring"}')
+            self.wfile.write(b'{"error": "URL required"}')
             return
 
         try:
-            scores = asyncio.run(handler.get_lighthouse_scores(url))
+            # 1. Fetch HTML
+            start_time = time.time()
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+            resp = requests.get(url, timeout=10, headers=headers)
+            resp.raise_for_status()
+            load_time = time.time() - start_time
+            
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            
+            # 1. Performance Heuristics (Timing)
+            perf_score = max(0, min(100, 100 - (load_time * 12)))
+            
+            # 2. SEO Heuristics
+            seo_score = 0
+            if soup.find('title'): seo_score += 25
+            if soup.find('meta', attrs={'name': 'description'}): seo_score += 25
+            if soup.find('h1'): seo_score += 25
+            if soup.find('meta', attrs={'name': 'viewport'}): seo_score += 25
+            
+            # 3. Best Practices
+            bp_score = 0
+            if url.startswith('https'): bp_score += 50
+            if soup.find('link', attrs={'rel': 'icon'}): bp_score += 50
+            
+            scores = {
+                "performance": int(perf_score),
+                "accessibility": 100, # Placeholder
+                "bestPractices": bp_score,
+                "seo": seo_score
+            }
+
             body = json.dumps(scores).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -32,44 +62,3 @@ class handler:
             self.send_response(500)
             self.end_headers()
             self.wfile.write(json.dumps({"error": str(e)}).encode())
-
-    @staticmethod
-    async def get_lighthouse_scores(url):
-        async with async_playwright() as p:
-            start_time = time.time()
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
-            
-            # 1. Performance Heuristics (Timing)
-            await page.goto(url, wait_until="load")
-            load_time = time.time() - start_time
-            perf_score = max(0, min(100, 100 - (load_time * 10))) # Very simple proxy
-            
-            # 2. SEO Heuristics
-            seo_score = 0
-            # Meta tags
-            if await page.query_selector('title'): seo_score += 25
-            if await page.query_selector('meta[name="description"]'): seo_score += 25
-            if await page.query_selector('h1'): seo_score += 25
-            if await page.query_selector('meta[name="viewport"]'): seo_score += 25
-            
-            # 3. Best Practices
-            bp_score = 0
-            # HTTPS
-            if url.startswith('https'): bp_score += 50
-            # No console errors
-            # (In a real audit we'd listen to console events)
-            bp_score += 50 
-            
-            # 4. Accessibility (Heuristic or use Axe result)
-            # For this separate endpoint, we'll return a placeholder or run a quick axe check
-            a11y_score = 100 # Placeholder - actual results come from /analyze
-            
-            await browser.close()
-            
-            return {
-                "performance": int(perf_score),
-                "accessibility": a11y_score,
-                "bestPractices": bp_score,
-                "seo": seo_score
-            }
