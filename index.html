@@ -154,7 +154,7 @@
     <header>
       <div class="logo">♿ A11y Analyzer</div>
       <form id="analyze-form" style="display:flex; gap:12px; flex:1; max-width:600px;">
-        <input id="url-input" type="url" placeholder="https://example.com" required style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:0 16px; color:#fff; outline:none;">
+        <input id="url-input" type="text" placeholder="example.com" required style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:0 16px; color:#fff; outline:none;">
         <button class="btn btn-primary" type="submit">Analyze</button>
       </form>
       <button class="btn" type="button" onclick="logout()" style="height:38px;">Logout</button>
@@ -257,7 +257,10 @@
 
   $('analyze-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const url = $('url-input').value;
+    let url = $('url-input').value.trim();
+    if (url && !url.match(/^[a-zA-Z]+:\/\//)) {
+      url = 'https://' + url;
+    }
     const pass = localStorage.getItem(APP_PASS_KEY);
     if (!url || !pass) return;
 
