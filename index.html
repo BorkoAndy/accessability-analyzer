@@ -326,7 +326,9 @@
     $('results-active-url').textContent = data.url;
 
     renderIssues('errors');
-    renderLighthouse();
+    if (auditData.lh && auditData.lhAudits) {
+      renderLighthouse();
+    }
   }
 
   function renderIssues(type) {
@@ -357,7 +359,24 @@
   }
 
   function renderLighthouse() {
+    if (!auditData || !auditData.lh) return;
     const container = $('lh-gauges');
+    
+    let auditsHtml = '';
+    if (auditData.lhAudits) {
+      auditsHtml = `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          ${auditData.lhAudits.map(audit => `
+            <div style="background:var(--bg); padding:12px; border-radius:12px; border:1px solid var(--border); border-left:4px solid ${audit.score === 1 ? 'var(--green)' : audit.score >= 0.5 ? 'var(--orange)' : 'var(--red)'}">
+              <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px;">${audit.cat.toUpperCase()}</div>
+              <div style="font-size:13px; font-weight:600; margin-bottom:4px;">${audit.title}</div>
+              <div style="font-size:11px; color:var(--muted);">${audit.desc}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
     container.innerHTML = `
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:24px;">
         ${Object.entries(auditData.lh).map(([k, v]) => `
@@ -367,18 +386,10 @@
           </div>
         `).join('')}
       </div>
-      
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        ${auditData.lhAudits.map(audit => `
-          <div style="background:var(--bg); padding:12px; border-radius:12px; border:1px solid var(--border); border-left:4px solid ${audit.score === 1 ? 'var(--green)' : audit.score >= 0.5 ? 'var(--orange)' : 'var(--red)'}">
-            <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px;">${audit.cat.toUpperCase()}</div>
-            <div style="font-size:13px; font-weight:600; margin-bottom:4px;">${audit.title}</div>
-            <div style="font-size:11px; color:var(--muted);">${audit.desc}</div>
-          </div>
-        `).join('')}
-      </div>
+      ${auditsHtml}
     `;
   }
+
 
 
   function switchAsideTab(tab, event) {
