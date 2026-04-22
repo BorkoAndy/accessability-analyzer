@@ -1,6 +1,10 @@
 import sys
 import os
+
+# Add v1 folder to path so imports work
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "v1"))
+# Add v1/lib folder too
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "v1", "lib"))
 
 from analyze import handler as analyze_handler
 from health import handler as health_handler

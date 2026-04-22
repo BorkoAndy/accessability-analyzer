@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 import time
 from urllib.parse import urlparse, parse_qs
-from lib.auth import check_auth
+from auth import check_auth
 
 AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js"
 

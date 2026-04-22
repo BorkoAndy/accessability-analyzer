@@ -11,7 +11,7 @@ import json
 import os
 import tempfile
 from urllib.parse import urlparse, parse_qs
-from lib.auth import check_auth
+from auth import check_auth
 
 # ── axe-core CDN (pinned version, no npm needed) ──────────────────────────────
 AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.1/axe.min.js"
@@ -51,7 +51,7 @@ def _route(self):
         self.end_headers()
         self.wfile.write(json.dumps({"error": "Not found"}).encode())
 
-        
+
 def _run_axe(playwright, target_url: str | None, html: str | None) -> dict:
     """Launch Chromium, inject axe-core, return raw axe results."""
     from playwright.sync_api import sync_playwright

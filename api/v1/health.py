@@ -5,7 +5,7 @@ Simple health check — returns API info and available endpoints (v1).
 
 from http.server import BaseHTTPRequestHandler
 import json
-from lib.auth import check_auth
+from auth import check_auth
 
 
 class handler(BaseHTTPRequestHandler):
