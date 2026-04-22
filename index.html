@@ -293,7 +293,8 @@
       });
       if (lhRes.ok) {
         const lhData = await lhRes.json();
-        auditData.lh = lhData;
+        auditData.lh = lhData.scores;
+        auditData.lhAudits = lhData.audits;
         renderLighthouse();
       }
 
@@ -350,16 +351,27 @@
   function renderLighthouse() {
     const container = $('lh-gauges');
     container.innerHTML = `
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:24px;">
         ${Object.entries(auditData.lh).map(([k, v]) => `
           <div style="text-align:center; background:var(--bg); padding:16px; border-radius:12px; border:1px solid var(--border);">
-            <div style="font-size:20px; font-weight:700; color:${v > 90 ? 'var(--green)' : 'var(--orange)'}">${v}</div>
+            <div style="font-size:20px; font-weight:700; color:${v >= 90 ? 'var(--green)' : v >= 50 ? 'var(--orange)' : 'var(--red)'}">${v}</div>
             <div style="font-size:9px; text-transform:uppercase; color:var(--muted); font-weight:700; margin-top:4px;">${k === 'bestPractices' ? 'Best Practices' : k}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        ${auditData.lhAudits.map(audit => `
+          <div style="background:var(--bg); padding:12px; border-radius:12px; border:1px solid var(--border); border-left:4px solid ${audit.score === 1 ? 'var(--green)' : audit.score >= 0.5 ? 'var(--orange)' : 'var(--red)'}">
+            <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px;">${audit.cat.toUpperCase()}</div>
+            <div style="font-size:13px; font-weight:600; margin-bottom:4px;">${audit.title}</div>
+            <div style="font-size:11px; color:var(--muted);">${audit.desc}</div>
           </div>
         `).join('')}
       </div>
     `;
   }
+
 
   function switchAsideTab(tab, event) {
     document.querySelectorAll('.atab').forEach(t => t.classList.toggle('active', false));
