@@ -1,153 +1,408 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>A11y Analyzer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --border: #334155;
-    --text: #f1f5f9;
-    --muted: #94a3b8;
-    --accent: #3b82f6;
-    --accent-hover: #2563eb;
-    --red: #ef4444;
-    --orange: #f59e0b;
-    --green: #10b981;
-    --sidebar: 280px;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A11y Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --green: #10b981;
+      --sidebar: 280px;
+    }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  /* ── Auth Layer ── */
-  #auth-overlay {
-    position: fixed; inset: 0; z-index: 1000; background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .auth-card {
-    background: var(--surface); padding: 48px; border-radius: 32px; border: 1px solid var(--border);
-    width: 100%; max-width: 400px; text-align: center;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-  }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
 
-  /* ── Main App Layout ── */
-  #app-shell { display: none; height: 100vh; flex-direction: column; }
+    /* ── Auth Layer ── */
+    #auth-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-  header { 
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    height: 60px; display: flex; align-items: center; padding: 0 24px; gap: 20px;
-  }
-  .logo { font-weight: 700; font-size: 20px; display: flex; align-items: center; gap: 10px; color: var(--accent); }
-  
-  #url-form { flex: 1; display: flex; max-width: 800px; gap: 12px; }
-  input[type="url"] {
-    flex: 1; background: var(--bg); border: 1px solid var(--border); padding: 0 16px; 
-    border-radius: 12px; color: #fff; font-size: 14px; outline: none;
-  }
-  input:focus { border-color: var(--accent); }
-  .btn {
-    height: 38px; padding: 0 20px; border-radius: 12px; border: none; font-size: 14px; font-weight: 600; cursor: pointer;
-    background: var(--surface); color: var(--text); border: 1px solid var(--border); transition: all 0.2s;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .btn-primary { background: var(--accent); border: none; color: #fff; }
-  .btn:hover { background: var(--border); }
-  .btn-primary:hover { background: var(--accent-hover); }
+    .auth-card {
+      background: var(--surface);
+      padding: 48px;
+      border-radius: 32px;
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
 
-  main { display: flex; flex: 1; overflow: hidden; }
+    /* ── Main App Layout ── */
+    #app-shell {
+      display: none;
+      height: 100vh;
+      flex-direction: column;
+    }
 
-  /* ── Sidebar ── */
-  aside { 
-    width: var(--sidebar); background: var(--surface); border-right: 1px solid var(--border);
-    display: flex; flex-direction: column; overflow: hidden;
-  }
-  .aside-tabs { display: flex; border-bottom: 1px solid var(--border); }
-  .atab { 
-    flex: 1; padding: 12px; text-align: center; font-size: 11px; font-weight: 700; 
-    cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; 
-    text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  .atab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 20px;
+    }
 
-  .aside-content { flex: 1; overflow-y: auto; padding: 20px; }
-  
-  .score-gauge {
-    width: 120px; height: 120px; margin: 0 auto 24px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    border: 8px solid var(--border); font-size: 28px; font-weight: 700;
-  }
-  .score-gauge.good { border-color: var(--green); color: var(--green); }
-  .score-gauge.warn { border-color: var(--orange); color: var(--orange); }
-  .score-gauge.bad { border-color: var(--red); color: var(--red); }
+    .logo {
+      font-weight: 700;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--accent);
+    }
 
-  .category-list { display: flex; flex-direction: column; gap: 8px; }
-  .cat-item {
-    display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px;
-    cursor: pointer; background: var(--bg); border: 1px solid transparent; transition: all 0.1s;
-  }
-  .cat-item:hover { border-color: var(--border); }
-  .cat-item.active { background: var(--border); border-color: var(--accent); }
-  .cat-icon { font-size: 18px; }
-  .cat-label { flex: 1; font-size: 13px; font-weight: 600; }
-  .cat-count { font-weight: 700; }
+    #url-form {
+      flex: 1;
+      display: flex;
+      max-width: 800px;
+      gap: 12px;
+    }
 
-  /* ── Content Area ── */
-  #content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+    input[type="url"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0 16px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
 
-  .status-empty { 
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-    color: var(--muted); gap: 16px; text-align: center;
-  }
-  .status-empty .icon { font-size: 64px; }
+    input:focus {
+      border-color: var(--accent);
+    }
 
-  .issue-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
-    padding: 24px; display: flex; flex-direction: column; gap: 12px;
-  }
-  .issue-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
-  .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-  .badge-red { background: rgba(239, 68, 68, 0.1); color: var(--red); }
-  .badge-orange { background: rgba(245, 158, 11, 0.1); color: var(--orange); }
+    .btn {
+      height: 38px;
+      padding: 0 20px;
+      border-radius: 12px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-  h3 { font-size: 16px; margin-bottom: 4px; }
-  .desc { font-size: 14px; color: var(--muted); line-height: 1.5; }
-  
-  .code-snip {
-    background: #000; color: #e5e7eb; padding: 16px; border-radius: 12px;
-    font-family: monospace; font-size: 12px; overflow-x: auto; margin-top: 8px;
-  }
+    .btn-primary {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+    }
 
-  /* ── Success/Gauges ── */
-  .gauge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
-  
-  @media (max-width: 900px) {
-    aside { display: none; }
-  }
+    .btn:hover {
+      background: var(--border);
+    }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
 
-  /* ── Right Sidebar (Discovery) ── */
-  #sitemap-sidebar {
-    width: 350px; background: var(--surface); border-left: 1px solid var(--border);
-    display: none; flex-direction: column; overflow: hidden; animation: slideInX 0.3s ease;
-  }
-  @keyframes slideInX { from { transform: translateX(100%); } to { transform: translateX(0); } }
-  
-  .sm-list-item {
-    padding: 12px 16px; background: var(--bg); border: 1px solid var(--border);
-    border-radius: 12px; cursor: pointer; font-size: 13px; transition: all 0.2s;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 8px;
-  }
-  .sm-list-item:hover { border-color: var(--accent); background: var(--surface); }
-  .sm-list-item.active { border-color: var(--accent); background: rgba(59, 130, 246, 0.1); }
-</style>
+    main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    aside {
+      width: var(--sidebar);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .aside-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .atab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .atab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .aside-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .score-gauge {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 8px solid var(--border);
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .score-gauge.good {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .score-gauge.warn {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .score-gauge.bad {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cat-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--bg);
+      border: 1px solid transparent;
+      transition: all 0.1s;
+    }
+
+    .cat-item:hover {
+      border-color: var(--border);
+    }
+
+    .cat-item.active {
+      background: var(--border);
+      border-color: var(--accent);
+    }
+
+    .cat-icon {
+      font-size: 18px;
+    }
+
+    .cat-label {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .cat-count {
+      font-weight: 700;
+    }
+
+    /* ── Content Area ── */
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .status-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      gap: 16px;
+      text-align: center;
+    }
+
+    .status-empty .icon {
+      font-size: 64px;
+    }
+
+    .issue-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .issue-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-red {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--red);
+    }
+
+    .badge-orange {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--orange);
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .code-snip {
+      background: #000;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+
+    /* ── Success/Gauges ── */
+    .gauge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      aside {
+        display: none;
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── Right Sidebar (Discovery) ── */
+    #sitemap-sidebar {
+      width: 350px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideInX 0.3s ease;
+    }
+
+    @keyframes slideInX {
+      from {
+        transform: translateX(100%);
+      }
+
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    .sm-list-item {
+      padding: 12px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 8px;
+    }
+
+    .sm-list-item:hover {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .sm-list-item.active {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.1);
+    }
+  </style>
 </head>
+
 <body>
 
   <!-- ── Authentication Layer ── -->
@@ -155,11 +410,15 @@
     <div class="auth-card">
       <div style="font-size: 48px; margin-bottom: 24px;">🔐</div>
       <h1 style="margin-bottom: 8px;">Protected Access</h1>
-      <p style="color: var(--muted); font-size: 14px; margin-bottom: 32px;">Please enter the password to open the tool.</p>
+      <p style="color: var(--muted); font-size: 14px; margin-bottom: 32px;">Please enter the password to open the tool.
+      </p>
       <form id="auth-form">
-        <input type="password" id="auth-pass" placeholder="••••••••" style="width:100%; padding:16px; border-radius:16px; border:1px solid var(--border); background: var(--bg); color:#fff; text-align:center; margin-bottom:20px; outline:none;" required autofocus>
+        <input type="password" id="auth-pass" placeholder="••••••••"
+          style="width:100%; padding:16px; border-radius:16px; border:1px solid var(--border); background: var(--bg); color:#fff; text-align:center; margin-bottom:20px; outline:none;"
+          required autofocus>
         <button type="submit" class="btn btn-primary" style="width:100%; height:52px;">Unlock Tool</button>
-        <div id="auth-error" style="color:var(--red); font-size:13px; margin-top:16px; display:none;">Invalid password.</div>
+        <div id="auth-error" style="color:var(--red); font-size:13px; margin-top:16px; display:none;">Invalid password.
+        </div>
       </form>
     </div>
   </div>
@@ -169,7 +428,8 @@
     <header>
       <div class="logo">♿ A11y Analyzer</div>
       <form id="analyze-form" style="display:flex; gap:12px; flex:1; max-width:700px;">
-        <input id="url-input" type="text" placeholder="example.com" required style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:0 16px; color:#fff; outline:none;">
+        <input id="url-input" type="text" placeholder="example.com" required
+          style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:0 16px; color:#fff; outline:none;">
         <button class="btn btn-primary" type="submit">Analyze</button>
         <button class="btn" type="button" onclick="loadSitemap()" id="sitemap-btn">🗺️ Sitemap</button>
       </form>
@@ -182,7 +442,7 @@
           <div class="atab active" onclick="switchAsideTab('a11y', event)">AXE Summary</div>
           <div class="atab" onclick="switchAsideTab('lh', event)">Lighthouse</div>
         </div>
-        
+
         <div class="aside-content" id="aside-a11y">
           <div class="score-gauge" id="main-score">--</div>
           <div class="category-list">
@@ -201,7 +461,8 @@
 
         <div class="aside-content" id="aside-lh" style="display:none">
           <div id="lh-gauges">
-            <p style="color:var(--muted); text-align:center; padding-top:20px; font-size:13px;">Run analysis to see scores</p>
+            <p style="color:var(--muted); text-align:center; padding-top:20px; font-size:13px;">Run analysis to see
+              scores</p>
           </div>
         </div>
       </aside>
@@ -225,215 +486,217 @@
 
       <!-- Right Sidebar: Sitemap Explorer -->
       <aside id="sitemap-sidebar">
-        <div style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <div
+          style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
           <h2 style="font-size: 18px;">🗺️ Sitemap</h2>
           <button class="btn" onclick="toggleSitemap()" style="padding: 0 10px;">&times;</button>
         </div>
         <div style="flex: 1; overflow-y: auto; padding: 24px;">
-          <p style="color: var(--muted); font-size: 12px; margin-bottom: 16px;">Found <span id="sm-count">0</span> pages. Select one to audit.</p>
+          <p style="color: var(--muted); font-size: 12px; margin-bottom: 16px;">Found <span id="sm-count">0</span>
+            pages. Select one to audit.</p>
           <div id="sitemap-list"></div>
         </div>
       </aside>
     </main>
   </div>
 
-<script>
-  const $ = id => document.getElementById(id);
-  
-  // ── Authentication ──
-  const APP_PASS_KEY = 'analyze_pass';
+  <script>
+    const $ = id => document.getElementById(id);
 
-  async function checkAuth() {
-    const pass = localStorage.getItem(APP_PASS_KEY);
-    if (!pass) return;
-    
-    const ok = await verifyPass(pass);
-    if (ok) showApp();
-  }
+    // ── Authentication ──
+    const APP_PASS_KEY = 'analyze_pass';
 
-  async function verifyPass(pass) {
-    try {
-      const res = await fetch('/api/verify', { headers: { 'X-API-Key': pass } });
-      return res.ok;
-    } catch (e) { return false; }
-  }
+    async function checkAuth() {
+      const pass = localStorage.getItem(APP_PASS_KEY);
+      if (!pass) return;
 
-  function showApp() {
-    $('auth-overlay').style.display = 'none';
-    $('app-shell').style.display = 'flex';
-  }
-
-  function logout() {
-    localStorage.removeItem(APP_PASS_KEY);
-    location.reload();
-  }
-
-  $('auth-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const pass = $('auth-pass').value;
-    const ok = await verifyPass(pass);
-    if (ok) {
-      localStorage.setItem(APP_PASS_KEY, pass);
-      showApp();
-    } else {
-      $('auth-error').style.display = 'block';
-      $('auth-pass').value = '';
+      const ok = await verifyPass(pass);
+      if (ok) showApp();
     }
-  });
 
-  // ── Audit Logic ──
-  let auditData = null;
-
-  $('analyze-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    let url = $('url-input').value.trim();
-    if (url && !url.match(/^[a-zA-Z]+:\/\//)) {
-      url = 'https://' + url;
-    }
-    const pass = localStorage.getItem(APP_PASS_KEY);
-    if (!url || !pass) return;
-
-    $('empty-state').innerHTML = '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;"><div style="width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p>Performing A11y Audit (axe-core)...</p></div>';
-    $('lh-gauges').innerHTML = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; gap:12px;"><div style="width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p style="font-size:12px; color:var(--muted);">Auditing Performance...</p></div>';
-    $('results-feed').style.display = 'none';
-    
-    try {
-      // 1. Run Axe-Core Analysis
-      const res = await fetch('/api/v1/analyze', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-API-Key': pass 
-        },
-        body: JSON.stringify({ url })
-      });
-
-      if (!res.ok) throw new Error('Analysis failed');
-      const data = await res.json();
-      renderResults(data);
-
-      // 2. Run Lighthouse Heuristics (Background)
+    async function verifyPass(pass) {
       try {
-        const lhRes = await fetch('/api/v1/lighthouse', {
+        const res = await fetch('/api/verify', { headers: { 'X-API-Key': pass } });
+        return res.ok;
+      } catch (e) { return false; }
+    }
+
+    function showApp() {
+      $('auth-overlay').style.display = 'none';
+      $('app-shell').style.display = 'flex';
+    }
+
+    function logout() {
+      localStorage.removeItem(APP_PASS_KEY);
+      location.reload();
+    }
+
+    $('auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pass = $('auth-pass').value;
+      const ok = await verifyPass(pass);
+      if (ok) {
+        localStorage.setItem(APP_PASS_KEY, pass);
+        showApp();
+      } else {
+        $('auth-error').style.display = 'block';
+        $('auth-pass').value = '';
+      }
+    });
+
+    // ── Audit Logic ──
+    let auditData = null;
+
+    $('analyze-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      let url = $('url-input').value.trim();
+      if (url && !url.match(/^[a-zA-Z]+:\/\//)) {
+        url = 'https://' + url;
+      }
+      const pass = localStorage.getItem(APP_PASS_KEY);
+      if (!url || !pass) return;
+
+      $('empty-state').innerHTML = '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;"><div style="width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p>Performing A11y Audit (axe-core)...</p></div>';
+      $('lh-gauges').innerHTML = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px; gap:12px;"><div style="width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p style="font-size:12px; color:var(--muted);">Auditing Performance...</p></div>';
+      $('results-feed').style.display = 'none';
+
+      try {
+        // 1. Run Axe-Core Analysis
+        const res = await fetch('/api/v1/analyze', {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
-            'X-API-Key': pass 
+            'X-API-Key': pass
           },
           body: JSON.stringify({ url })
         });
-        if (lhRes.ok) {
-          const lhData = await lhRes.json();
-          // Sync accessibility score with Axe-Core for consistency
-          if (auditData && auditData.score !== undefined) {
-            lhData.scores.accessibility = auditData.score;
+
+        if (!res.ok) throw new Error('Analysis failed');
+        const data = await res.json();
+        renderResults(data);
+
+        // 2. Run Lighthouse Heuristics (Background)
+        try {
+          const lhRes = await fetch('/api/v1/lighthouse', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': pass
+            },
+            body: JSON.stringify({ url })
+          });
+          if (lhRes.ok) {
+            const lhData = await lhRes.json();
+            // Sync accessibility score with Axe-Core for consistency
+            if (auditData && auditData.score !== undefined) {
+              lhData.scores.accessibility = auditData.score;
+            }
+            auditData.lh = lhData.scores;
+            auditData.lhAudits = lhData.audits;
+            renderLighthouse();
+          } else {
+            throw new Error();
           }
-          auditData.lh = lhData.scores;
-          auditData.lhAudits = lhData.audits;
-          renderLighthouse();
-        } else {
-          throw new Error();
+        } catch (lhErr) {
+          $('lh-gauges').innerHTML = '<p style="color:var(--red); font-size:12px; text-align:center; padding:20px;">Lighthouse audit failed.</p>';
         }
-      } catch (lhErr) {
-        $('lh-gauges').innerHTML = '<p style="color:var(--red); font-size:12px; text-align:center; padding:20px;">Lighthouse audit failed.</p>';
+
+      } catch (err) {
+        $('empty-state').innerHTML = `<div class="icon">❌</div><h2>Analysis Failed</h2><p>${err.message}</p><button class="btn" onclick="location.reload()" style="margin-top:16px;">Try Again</button>`;
+        $('lh-gauges').innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; font-size:12px;">Run analysis to see scores</p>';
       }
-
-    } catch (err) {
-      $('empty-state').innerHTML = `<div class="icon">❌</div><h2>Analysis Failed</h2><p>${err.message}</p><button class="btn" onclick="location.reload()" style="margin-top:16px;">Try Again</button>`;
-      $('lh-gauges').innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px; font-size:12px;">Run analysis to see scores</p>';
-    }
-  });
-
-  async function loadSitemap() {
-    const url = $('url-input').value.trim();
-    const pass = localStorage.getItem(APP_PASS_KEY);
-    if (!url || !pass) return;
-
-    // Toggle open if it was closed
-    $('sitemap-sidebar').style.display = 'flex';
-    $('sitemap-btn').textContent = '⌛ Loading...';
-    
-    try {
-      const res = await fetch('/api/v1/sitemap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-API-Key': pass },
-        body: JSON.stringify({ url })
-      });
-      const data = await res.json();
-      if (res.ok && data.urls) {
-        renderSitemap(data);
-      } else {
-        alert(data.error || 'No sitemap found for this domain.');
-      }
-    } catch (e) {
-      alert('Network error: Failed to reach sitemap engine.');
-    } finally {
-      $('sitemap-btn').textContent = '🗺️ Sitemap';
-    }
-  }
-
-  function toggleSitemap() {
-    const sb = $('sitemap-sidebar');
-    sb.style.display = (sb.style.display === 'flex') ? 'none' : 'flex';
-  }
-
-  function renderSitemap(data) {
-    // We no longer hide the empty state here so the results can be seen alongside the list
-    $('sm-count').textContent = data.count;
-
-    const list = $('sitemap-list');
-    list.innerHTML = '';
-    data.urls.forEach(url => {
-      const item = document.createElement('div');
-      item.className = 'sm-list-item';
-      item.textContent = url;
-      item.onclick = () => {
-        // Highlight active
-        document.querySelectorAll('.sm-list-item').forEach(el => el.classList.remove('active'));
-        item.classList.add('active');
-        
-        $('url-input').value = url;
-        $('analyze-form').requestSubmit();
-      };
-      list.appendChild(item);
     });
-  }
 
+    async function loadSitemap() {
+      const url = $('url-input').value.trim();
+      const pass = localStorage.getItem(APP_PASS_KEY);
+      if (!url || !pass) return;
 
-  function renderResults(data) {
-    auditData = data;
-    $('empty-state').style.display = 'none';
-    $('results-feed').style.display = 'block';
-    
-    const mainScore = $('main-score');
-    mainScore.textContent = data.score;
-    mainScore.className = `score-gauge ${data.score > 90 ? 'good' : data.score > 50 ? 'warn' : 'bad'}`;
+      // Toggle open if it was closed
+      $('sitemap-sidebar').style.display = 'flex';
+      $('sitemap-btn').textContent = '⌛ Loading...';
 
-    $('cnt-errors').textContent = data.stats.errors;
-    $('cnt-alerts').textContent = data.stats.alerts;
-    $('results-active-url').textContent = data.url;
-
-    renderIssues('errors');
-    if (auditData.lh && auditData.lhAudits) {
-      renderLighthouse();
-    }
-  }
-
-  function renderIssues(type) {
-    const list = $('issue-list');
-    list.innerHTML = '';
-    
-    const filtered = auditData.issues.filter(i => i.type === type);
-
-    if (filtered.length === 0) {
-      list.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px;">No issues found in this category.</p>';
-      return;
+      try {
+        const res = await fetch('/api/v1/sitemap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': pass },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (res.ok && data.urls) {
+          renderSitemap(data);
+        } else {
+          alert(data.error || 'No sitemap found for this domain.');
+        }
+      } catch (e) {
+        alert('Network error: Failed to reach sitemap engine.');
+      } finally {
+        $('sitemap-btn').textContent = '🗺️ Sitemap';
+      }
     }
 
-    filtered.forEach(issue => {
-      const card = document.createElement('div');
-      card.className = 'issue-card';
-      card.innerHTML = `
+    function toggleSitemap() {
+      const sb = $('sitemap-sidebar');
+      sb.style.display = (sb.style.display === 'flex') ? 'none' : 'flex';
+    }
+
+    function renderSitemap(data) {
+      // We no longer hide the empty state here so the results can be seen alongside the list
+      $('sm-count').textContent = data.count;
+
+      const list = $('sitemap-list');
+      list.innerHTML = '';
+      data.urls.forEach(url => {
+        const item = document.createElement('div');
+        item.className = 'sm-list-item';
+        item.textContent = url;
+        item.onclick = () => {
+          // Highlight active
+          document.querySelectorAll('.sm-list-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+
+          $('url-input').value = url;
+          $('analyze-form').requestSubmit();
+        };
+        list.appendChild(item);
+      });
+    }
+
+
+    function renderResults(data) {
+      auditData = data;
+      $('empty-state').style.display = 'none';
+      $('results-feed').style.display = 'block';
+
+      const mainScore = $('main-score');
+      mainScore.textContent = data.score;
+      mainScore.className = `score-gauge ${data.score > 90 ? 'good' : data.score > 50 ? 'warn' : 'bad'}`;
+
+      $('cnt-errors').textContent = data.stats.errors;
+      $('cnt-alerts').textContent = data.stats.alerts;
+      $('results-active-url').textContent = data.url;
+
+      renderIssues('errors');
+      if (auditData.lh && auditData.lhAudits) {
+        renderLighthouse();
+      }
+    }
+
+    function renderIssues(type) {
+      const list = $('issue-list');
+      list.innerHTML = '';
+
+      const filtered = auditData.issues.filter(i => i.type === type);
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<p style="color:var(--muted); text-align:center; padding:40px;">No issues found in this category.</p>';
+        return;
+      }
+
+      filtered.forEach(issue => {
+        const card = document.createElement('div');
+        card.className = 'issue-card';
+        card.innerHTML = `
         <div class="issue-meta">
           <span class="badge ${issue.impact === 'critical' || issue.impact === 'serious' ? 'badge-red' : 'badge-orange'}">${issue.impact}</span>
           <span>axe-core rule</span>
@@ -442,16 +705,16 @@
         <p class="desc">${issue.desc}</p>
         <div class="code-snip">${issue.code.replace(/</g, '&lt;')}</div>
       `;
-      list.appendChild(card);
-    });
-  }
+        list.appendChild(card);
+      });
+    }
 
-  function renderLighthouse() {
-    if (!auditData || !auditData.lh) return;
-    
-    // 1. Sidebar Gauges
-    const gauges = $('lh-gauges');
-    gauges.innerHTML = `
+    function renderLighthouse() {
+      if (!auditData || !auditData.lh) return;
+
+      // 1. Sidebar Gauges
+      const gauges = $('lh-gauges');
+      gauges.innerHTML = `
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:24px;">
         ${Object.entries(auditData.lh).map(([k, v]) => `
           <div style="text-align:center; background:var(--bg); padding:16px; border-radius:12px; border:1px solid var(--border);">
@@ -462,15 +725,15 @@
       </div>
     `;
 
-    // 2. Main Content Audit Cards
-    const list = $('lh-list');
-    list.innerHTML = '';
-    if (auditData.lhAudits) {
-      auditData.lhAudits.forEach(audit => {
-        const card = document.createElement('div');
-        card.className = 'issue-card';
-        card.style.borderLeft = `4px solid ${audit.score === 1 ? 'var(--green)' : audit.score >= 0.5 ? 'var(--orange)' : 'var(--red)'}`;
-        card.innerHTML = `
+      // 2. Main Content Audit Cards
+      const list = $('lh-list');
+      list.innerHTML = '';
+      if (auditData.lhAudits) {
+        auditData.lhAudits.forEach(audit => {
+          const card = document.createElement('div');
+          card.className = 'issue-card';
+          card.style.borderLeft = `4px solid ${audit.score === 1 ? 'var(--green)' : audit.score >= 0.5 ? 'var(--orange)' : 'var(--red)'}`;
+          card.innerHTML = `
           <div class="issue-meta">
             <span style="font-weight:700; color:var(--muted); text-transform:uppercase;">${audit.cat}</span>
             <span>lighthouse heuristic</span>
@@ -478,35 +741,36 @@
           <h3>${audit.title}</h3>
           <p class="desc">${audit.desc}</p>
         `;
-        list.appendChild(card);
-      });
+          list.appendChild(card);
+        });
+      }
     }
-  }
 
 
 
-  function switchAsideTab(tab, event) {
-    document.querySelectorAll('.atab').forEach(t => t.classList.toggle('active', false));
-    event.target.classList.add('active');
-    
-    // Aside Visibility
-    $('aside-a11y').style.display = tab === 'a11y' ? 'block' : 'none';
-    $('aside-lh').style.display = tab === 'lh' ? 'block' : 'none';
+    function switchAsideTab(tab, event) {
+      document.querySelectorAll('.atab').forEach(t => t.classList.toggle('active', false));
+      event.target.classList.add('active');
 
-    // Main Visibility
-    $('issue-list').style.display = tab === 'a11y' ? 'flex' : 'none';
-    $('lh-list').style.display = tab === 'lh' ? 'flex' : 'none';
-    $('results-title').textContent = tab === 'a11y' ? 'Ax-Core Issues' : 'Lighthouse Audit Report';
-  }
+      // Aside Visibility
+      $('aside-a11y').style.display = tab === 'a11y' ? 'block' : 'none';
+      $('aside-lh').style.display = tab === 'lh' ? 'block' : 'none';
 
-  function filterIssues(type, event) {
-    document.querySelectorAll('.cat-item').forEach(i => i.classList.toggle('active', false));
-    event.currentTarget.classList.add('active');
-    renderIssues(type);
-  }
+      // Main Visibility
+      $('issue-list').style.display = tab === 'a11y' ? 'flex' : 'none';
+      $('lh-list').style.display = tab === 'lh' ? 'flex' : 'none';
+      $('results-title').textContent = tab === 'a11y' ? 'Ax-Core Issues' : 'Lighthouse Audit Report';
+    }
 
-  // Init
-  checkAuth();
-</script>
+    function filterIssues(type, event) {
+      document.querySelectorAll('.cat-item').forEach(i => i.classList.toggle('active', false));
+      event.currentTarget.classList.add('active');
+      renderIssues(type);
+    }
+
+    // Init
+    checkAuth();
+  </script>
 </body>
+
 </html>
