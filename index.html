@@ -296,6 +296,10 @@
         });
         if (lhRes.ok) {
           const lhData = await lhRes.json();
+          // Sync accessibility score with Axe-Core for consistency
+          if (auditData && auditData.score !== undefined) {
+            lhData.scores.accessibility = auditData.score;
+          }
           auditData.lh = lhData.scores;
           auditData.lhAudits = lhData.audits;
           renderLighthouse();

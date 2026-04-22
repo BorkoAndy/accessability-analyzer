@@ -115,7 +115,7 @@ class handler:
             response_data = {
                 "scores": {
                     "performance": perf_score,
-                    "accessibility": 100,
+                    "accessibility": 0, # Placeholder, synchronized by frontend
                     "bestPractices": max(0, bp_score),
                     "seo": max(0, seo_score)
                 },
