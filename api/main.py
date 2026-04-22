@@ -1,6 +1,6 @@
-from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse
-import json
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "v1"))
 
 from analyze import handler as analyze_handler
 from health import handler as health_handler

@@ -37,7 +37,21 @@ def _cors_headers():
         "Content-Type": "application/json",
     }
 
+def _route(self):
+    path = urlparse(self.path).path.rstrip("/")
 
+    if path == "/api/v1/analyze":
+        analyze_handler(self.request, self.client_address, self.server).handle()
+    elif path == "/api/v1/lighthouse":
+        lighthouse_handler(self.request, self.client_address, self.server).handle()
+    elif path == "/api/v1/health":
+        health_handler(self.request, self.client_address, self.server).handle()
+    else:
+        self.send_response(404)
+        self.end_headers()
+        self.wfile.write(json.dumps({"error": "Not found"}).encode())
+
+        
 def _run_axe(playwright, target_url: str | None, html: str | None) -> dict:
     """Launch Chromium, inject axe-core, return raw axe results."""
     from playwright.sync_api import sync_playwright
