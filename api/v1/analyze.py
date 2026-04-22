@@ -9,8 +9,18 @@ class Logic:
         req_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        resp = requests.get(url, timeout=12, headers=req_headers)
-        resp.raise_for_status()
+        try:
+            resp = requests.get(url, timeout=12, headers=req_headers)
+            resp.raise_for_status()
+        except requests.exceptions.Timeout:
+            raise Exception(f"The website at {url} took too long to respond (Timeout).")
+        except requests.exceptions.ConnectionError:
+            raise Exception(f"Could not connect to {url}. The domain might not exist or is blocking the tool.")
+        except requests.exceptions.HTTPError as e:
+            raise Exception(f"The website returned an error: {e.response.status_code} {e.response.reason}")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to fetch the website: {str(e)}")
+
         soup = BeautifulSoup(resp.text, 'html.parser')
         
         issues = []
