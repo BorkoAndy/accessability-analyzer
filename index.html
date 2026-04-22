@@ -258,26 +258,47 @@
   $('analyze-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = $('url-input').value;
-    if (!url) return;
+    const pass = localStorage.getItem(APP_PASS_KEY);
+    if (!url || !pass) return;
 
-    $('empty-state').innerHTML = '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;"><div style="width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p>Running Analysis...</p></div>';
+    $('empty-state').innerHTML = '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;"><div style="width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation: spin 1s infinite linear;"></div><p>Performing A11y Audit (axe-core)...</p></div>';
     $('results-feed').style.display = 'none';
     
-    // Initial MOCK CALL (Simulated Backend)
-    setTimeout(() => {
-      renderResults({
-        url: url,
-        score: 72,
-        stats: { errors: 2, alerts: 1 },
-        issues: [
-          { type: 'errors', impact: 'critical', title: 'Buttons must have discernible text', desc: 'Ensures buttons have discernible text so that they can be read by screen readers.', code: '<button class="nav-toggle"></button>' },
-          { type: 'errors', impact: 'serious', title: 'ID attribute value must be unique', desc: 'Ensures every id attribute value is unique to prevent accessibility issues with screen readers.', code: '<div id="sidebar"></div>' },
-          { type: 'alerts', impact: 'moderate', title: 'Image missing alt text', desc: 'Images should have alternative text to describe their content.', code: '<img src="logo.png">' }
-        ],
-        lh: { performance: 85, accessibility: 92, bestPractices: 100, seo: 100 }
+    try {
+      // 1. Run Axe-Core Analysis
+      const res = await fetch('/api/v1/analyze', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-API-Key': pass 
+        },
+        body: JSON.stringify({ url })
       });
-    }, 1200);
+
+      if (!res.ok) throw new Error('Analysis failed');
+      const data = await res.json();
+      renderResults(data);
+
+      // 2. Run Lighthouse Heuristics (Background)
+      const lhRes = await fetch('/api/v1/lighthouse', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-API-Key': pass 
+        },
+        body: JSON.stringify({ url })
+      });
+      if (lhRes.ok) {
+        const lhData = await lhRes.json();
+        auditData.lh = lhData;
+        renderLighthouse();
+      }
+
+    } catch (err) {
+      $('empty-state').innerHTML = `<div class="icon">❌</div><h2>Analysis Failed</h2><p>${err.message}</p><button class="btn" onclick="location.reload()" style="margin-top:16px;">Try Again</button>`;
+    }
   });
+
 
   function renderResults(data) {
     auditData = data;

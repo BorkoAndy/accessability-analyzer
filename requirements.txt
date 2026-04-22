@@ -1,1 +1,4 @@
-# No external dependencies required for basic auth
+playwright
+asyncio
+requests
+beautifulsoup4
