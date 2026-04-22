@@ -1,11 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A11y Analyzer | Protected</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --error: #ef4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── Background Blobs ── */
+  .blob {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+    filter: blur(80px);
+    border-radius: 50%;
+    z-index: -1;
+    animation: move 20s infinite alternate;
+  }
+  @keyframes move {
+    from { transform: translate(-20%, -20%); }
+    to { transform: translate(20%, 20%); }
+  }
+
+  /* ── Login Card ── */
+  #login-card {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 420px;
+    padding: 48px;
+    border-radius: 32px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    text-align: center;
+  }
+
+  .icon-box {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+  }
+
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+  p { color: var(--muted); font-size: 15px; margin-bottom: 32px; }
+
+  .input-group { text-align: left; margin-bottom: 24px; }
+  label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 8px; margin-left: 4px; }
+  input {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.5);
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.2s;
+    text-align: center;
+    letter-spacing: 0.3em;
+  }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+
+  button {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  }
+  button:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3); }
+  button:active { transform: translateY(0); }
+
+  #error-msg {
+    color: var(--error);
+    font-size: 13px;
+    margin-top: 16px;
+    display: none;
+  }
+
+  /* ── Success State ── */
+  #app-content { display: none; text-align: center; }
+  #app-content h2 { font-size: 24px; margin-bottom: 12px; }
+
+</style>
 </head>
 <body>
-    <h1>Hello world</h1>
+
+  <div class="blob" style="top: -10%; left: -10%;"></div>
+  <div class="blob" style="bottom: -10%; right: -10%; animation-delay: -5s;"></div>
+
+  <div id="login-container">
+    <div id="login-card">
+      <div class="icon-box">🔐</div>
+      <h1>Protected Access</h1>
+      <p>Please enter the password to unlock the tool.</p>
+      <form id="login-form">
+        <div class="input-group">
+          <label>Access Password</label>
+          <input type="password" id="password" placeholder="••••••••" required autofocus>
+        </div>
+        <button type="submit" id="submit-btn">Unlock Analyzer</button>
+        <div id="error-msg">Invalid password. Please try again.</div>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-content">
+    <div style="font-size: 64px; margin-bottom: 24px;">🚀</div>
+    <h2>Access Granted</h2>
+    <p>The A11y Analyzer is unlocked.</p>
+    <button onclick="logout()" style="width: auto; margin-top: 24px; padding: 12px 24px; background: transparent; border: 1px solid var(--border);">Log Out</button>
+  </div>
+
+<script>
+  const API_BASE = '';
+  const $ = id => document.getElementById(id);
+
+  async function checkAuth() {
+    const pass = localStorage.getItem('app_pass');
+    if (!pass) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/verify`, {
+        headers: { 'X-API-Key': pass }
+      });
+      if (res.ok) {
+        showApp();
+      } else {
+        localStorage.removeItem('app_pass');
+      }
+    } catch (e) {
+      console.error("Auth check failed", e);
+    }
+  }
+
+  function showApp() {
+    $('login-container').style.display = 'none';
+    $('app-content').style.display = 'block';
+    document.title = 'A11y Analyzer | Unlocked';
+  }
+
+  function logout() {
+    localStorage.removeItem('app_pass');
+    location.reload();
+  }
+
+  $('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pass = $('password').value;
+    const btn = $('submit-btn');
+    const err = $('error-msg');
+
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+    err.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/verify`, {
+        headers: { 'X-API-Key': pass }
+      });
+
+      if (res.ok) {
+        localStorage.setItem('app_pass', pass);
+        showApp();
+      } else {
+        err.style.display = 'block';
+        $('password').value = '';
+        $('password').focus();
+      }
+    } catch (err) {
+      alert("Verification failed. Check your connection.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Unlock Analyzer';
+    }
+  });
+
+  checkAuth();
+</script>
 </body>
 </html>
