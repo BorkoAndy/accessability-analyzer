@@ -39,47 +39,25 @@
         btn.addEventListener('click', async function(e) {
             e.preventDefault();
 
-            // 1. Determine URL to analyze
-            let alias = '';
+            // 1. Determine URL to analyze automatically
             const aliasInput = document.querySelector('input[name="alias"]');
-            if (aliasInput && aliasInput.value) {
-                alias = aliasInput.value;
-            }
+            const alias = aliasInput ? aliasInput.value : '';
             
-            // Ask user to confirm or provide full URL
-            let defaultBase = window.location.origin + '/';
-            let storedBase = localStorage.getItem('a11y_base_url') || defaultBase;
-            
-            let targetUrl = prompt("Enter the exact frontend URL to analyze:", storedBase + alias);
-            if (!targetUrl) return;
+            // Construct target URL using current browser origin
+            const targetUrl = window.location.origin + '/' + alias;
 
-            // Save the base part for future use
-            try {
-                let u = new URL(targetUrl);
-                localStorage.setItem('a11y_base_url', u.origin + '/');
-            } catch(e) {}
-
-            // 2. Get API connection details
-            let apiUrl = localStorage.getItem('a11y_api_url') || 'https://your-vercel-app.vercel.app';
-            apiUrl = prompt("Enter A11y API URL:", apiUrl);
-            if (!apiUrl) return;
-            localStorage.setItem('a11y_api_url', apiUrl);
-
-            let apiKey = localStorage.getItem('analyze_pass') || '';
-            apiKey = prompt("Enter API Password:", apiKey);
-            if (!apiKey) return;
-            localStorage.setItem('analyze_pass', apiKey);
+            // 2. Hardcoded API connection details
+            const apiUrl = 'https://andy-a11y-analyzer.vercel.app';
+            const apiKey = 'Kx9#mP2vN$qL8@wR5yT!';
 
             console.log('Starting A11y Audit for:', targetUrl);
-            btn.innerHTML = '⌛ Analyzing... (This takes about ~10s)';
-            btn.disabled = true;
-
-            // Remove old results if exist
-            const oldRes = document.querySelector('.a11y-results-panel');
-            if (oldRes) oldRes.remove();
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⌛ Analyzing...';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
 
             try {
-                const res = await fetch(`${apiUrl.replace(/\/$/, '')}/api/v1/full-audit`, {
+                const res = await fetch(`${apiUrl}/api/v1/full-audit`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -89,24 +67,32 @@
                 });
 
                 if (!res.ok) {
-                    if (res.status === 401) {
-                        localStorage.removeItem('analyze_pass');
-                        throw new Error('Unauthorized - Invalid Password');
-                    }
-                    throw new Error(`API returned ${res.status}`);
+                    throw new Error(`API returned ${res.status}: ${res.statusText}`);
                 }
 
                 const data = await res.json();
                 
-                // 3. Render Results Panel right below the tl_buttons
-                renderResultsPanel(tlButtons, data);
+                // 3. Display Results via Alert Window
+                const a11yScore = data.scores.accessibility ?? 0;
+                const perfScore = data.scores.performance ?? 0;
+                const errors = data.accessibility?.stats?.errors ?? 0;
+                const alerts = data.accessibility?.stats?.alerts ?? 0;
+
+                alert(
+                    `📊 Audit Results for ${data.url}\n\n` +
+                    `✅ Accessibility Score: ${a11yScore}/100\n` +
+                    `⚡ Performance Score: ${perfScore}/100\n\n` +
+                    `⚠️ Issues: ${errors} Errors, ${alerts} Alerts\n\n` +
+                    `Full report available at the Analyzer App.`
+                );
 
             } catch (err) {
                 alert('Analysis failed: ' + err.message);
                 console.error(err);
             } finally {
-                btn.innerHTML = '♿ Analyze Page';
-                btn.disabled = false;
+                btn.innerHTML = originalText;
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
             }
         });
 
@@ -136,53 +122,6 @@
                 tlButtons.appendChild(btn);
             }
         }
-    }
-
-    function renderResultsPanel(tlButtons, data) {
-        const panel = document.createElement('div');
-        panel.className = 'a11y-results-panel';
-        panel.style.marginTop = '15px';
-        panel.style.padding = '15px';
-        panel.style.backgroundColor = '#f8fafc';
-        panel.style.border = '1px solid #cbd5e1';
-        panel.style.borderRadius = '8px';
-        panel.style.fontFamily = 'sans-serif';
-        
-        const a11yScore = data.scores.accessibility ?? 0;
-        const perfScore = data.scores.performance ?? 0;
-        const errors = data.accessibility?.stats?.errors ?? 0;
-        const alerts = data.accessibility?.stats?.alerts ?? 0;
-
-        const getScoreColor = (score) => {
-            if (score >= 90) return '#10b981'; // Green
-            if (score >= 50) return '#f59e0b'; // Orange
-            return '#ef4444'; // Red
-        };
-
-        panel.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-                📊 A11y & Performance Audit Results
-            </div>
-            <div style="display: flex; gap: 20px; font-size: 14px;">
-                <div style="flex: 1; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 24px; font-weight: bold; color: ${getScoreColor(a11yScore)}">${a11yScore}</div>
-                    <div style="color: #64748b; font-size: 11px; text-transform: uppercase;">Accessibility</div>
-                </div>
-                <div style="flex: 1; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 24px; font-weight: bold; color: ${getScoreColor(perfScore)}">${perfScore}</div>
-                    <div style="color: #64748b; font-size: 11px; text-transform: uppercase;">Performance</div>
-                </div>
-                <div style="flex: 2; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;">
-                    <div style="margin-bottom: 4px;"><strong>Issues:</strong> <span style="color: #ef4444">${errors} Errors</span>, <span style="color: #f59e0b">${alerts} Alerts</span></div>
-                    <div style="font-size: 12px; color: #64748b;">${data.url}</div>
-                    <div style="font-size: 11px; margin-top: 6px;">
-                        <a href="${localStorage.getItem('a11y_api_url') || '#'}" target="_blank" style="color: #3b82f6; text-decoration: none;">View Full Report in Analyzer App →</a>
-                    </div>
-                </div>
-            </div>
-        `;
-        // Insert right after the tl_buttons container
-        tlButtons.parentNode.insertBefore(panel, tlButtons.nextSibling);
     }
 
     if (document.readyState === 'loading') {
