@@ -10,8 +10,11 @@ class Logic:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         try:
-            resp = requests.get(url, timeout=12, headers=req_headers)
+            # allow_redirects is True by default, but we'll capture the final URL
+            resp = requests.get(url, timeout=12, headers=req_headers, allow_redirects=True)
             resp.raise_for_status()
+            # Capture the final URL after redirects (e.g. .com -> .at)
+            final_url = resp.url
         except requests.exceptions.Timeout:
             raise Exception(f"The website at {url} took too long to respond (Timeout).")
         except requests.exceptions.ConnectionError:
@@ -169,7 +172,7 @@ class Logic:
         final_score = max(0, base_score - total_penalty)
 
         return {
-            "url": url,
+            "url": final_url,
             "score": final_score,
             "stats": {
                 "errors": len([i for i in issues if i['type'] == 'errors']),

@@ -36,7 +36,7 @@ class handler:
 
             # Merge results for a master API response
             response_data = {
-                "url": url,
+                "url": a_results.get('url', url),
                 "timestamp": int(time.time()),
                 "duration": round(total_time, 2),
                 "scores": {

@@ -8,9 +8,10 @@ class Logic:
     def run_audit(url):
         req_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
         start_time = time.time()
-        resp = requests.get(url, timeout=12, headers=req_headers)
+        resp = requests.get(url, timeout=12, headers=req_headers, allow_redirects=True)
         resp.raise_for_status()
         load_time = time.time() - start_time
+        final_url = resp.url
 
         soup = BeautifulSoup(resp.text, 'html.parser')
         audits = []
@@ -56,12 +57,13 @@ class Logic:
 
         # 3. Best Practices
         bp_score = 0
-        if url.startswith('https'): bp_score += 40
+        if final_url.startswith('https'): bp_score += 40
         if soup.contents and '!DOCTYPE' in str(soup.contents[0]).upper(): bp_score += 20
         if soup.find('meta', charset=True) or soup.find('meta', attrs={'http-equiv': 'Content-Type'}): bp_score += 20
         if soup.find('link', attrs={'rel': 'icon'}): bp_score += 20
 
         return {
+            "url": final_url,
             "scores": {
                 "performance": perf_score,
                 "accessibility": 0,
