@@ -1,9 +1,8 @@
 (function () {
     'use strict';
 
-    const ICON_URL = 'https://andy-a11y-analyzer.vercel.app/MyIcon.png';
-    const API_URL  = 'https://andy-a11y-analyzer.vercel.app';
-    const API_KEY  = 'Kx9#mP2vN$qL8@wR5yT!';
+    const ICON_URL  = 'https://andy-a11y-analyzer.vercel.app/MyIcon.png';
+    const PROXY_URL = '/api/a11y-analyze.php'; // local PHP CORS proxy
 
     // ── Styles (injected once into <head>) ────────────────────────────────────
     function ensureStyles() {
@@ -225,9 +224,9 @@
             overlay.querySelector('#a11y-close-btn').style.display = 'none';
 
             try {
-                const res = await fetch(`${API_URL}/api/v1/full-audit`, {
+                const res = await fetch(PROXY_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: targetUrl })
                 });
 
