@@ -56,6 +56,25 @@ class handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+        # 1.1 Support for static images (Png/Ico)
+        if path.lower().endswith(('.png', '.ico')):
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                asset_path = os.path.join(base_dir, path.lstrip('/'))
+                if os.path.exists(asset_path):
+                    with open(asset_path, "rb") as f:
+                        content = f.read()
+                    self.send_response(200)
+                    mime = "image/png" if path.lower().endswith('.png') else "image/x-icon"
+                    self.send_header("Content-Type", mime)
+                    self.send_header("Content-Length", str(len(content)))
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self.wfile.write(content)
+                    return
+            except Exception:
+                pass
+
         # 2. Handle API calls (Password Protected)
         if path.startswith("/api"):
             if auth_header == app_password:

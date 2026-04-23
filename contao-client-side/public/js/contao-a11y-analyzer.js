@@ -137,7 +137,7 @@
                     
                     <!-- Loading State -->
                     <div class="a11y-loading-state">
-                        <img src="${base}/MyIcon.png" style="width: 60px; height: auto; margin-bottom: 20px; animation: a11y-spin 2s infinite linear;">
+                        <img src="https://andy-a11y-analyzer.vercel.app/MyIcon.png" style="width: 60px; height: auto; margin-bottom: 20px; animation: a11y-spin 2s infinite linear;">
                         <h2 style="font-size: 20px; margin-bottom: 8px;">Analyzing Page...</h2>
                         <p style="color: #94a3b8; font-size: 14px;">Running accessibility and performance audits.</p>
                     </div>
@@ -145,7 +145,7 @@
                     <!-- Results State -->
                     <div class="a11y-results-state">
                         <div style="margin-bottom: 16px; text-align: center;">
-                            <img src="${base}/MyIcon.png" style="width: 60px; height: auto;">
+                            <img src="https://andy-a11y-analyzer.vercel.app/MyIcon.png" style="width: 60px; height: auto;">
                         </div>
                         <h2 style="text-align: center; margin-bottom: 8px; font-size: 22px;">Audit Complete</h2>
                         <p id="a11y-modal-url" style="text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 24px; word-break: break-all;"></p>
@@ -237,7 +237,8 @@
         btn.style.borderRadius = '4px';
         btn.style.textDecoration = 'none';
         btn.style.verticalAlign = 'middle';
-        btn.innerHTML = `<img src="${window.location.origin}/MyIcon.png" style="height:14px; width:auto; vertical-align:middle; margin-right:5px;"> Analyze Page`;
+        const iconUrl = 'https://andy-a11y-analyzer.vercel.app/MyIcon.png';
+        btn.innerHTML = `<img src="${iconUrl}" style="height:14px; width:auto; vertical-align:middle; margin-right:5px;"> Analyze Page`;
         btn.title = 'Run an accessibility and performance audit for this page';
 
         btn.addEventListener('click', async function(e) {
