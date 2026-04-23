@@ -104,6 +104,25 @@
                     transition: background 0.2s;
                 }
                 .a11y-btn-full:hover { background: #2563eb; }
+
+                /* Loader Animation */
+                .a11y-loader {
+                    width: 48px;
+                    height: 48px;
+                    border: 5px solid #334155;
+                    border-top-color: #3b82f6;
+                    border-radius: 50%;
+                    animation: a11y-spin 1s infinite linear;
+                    margin: 0 auto 24px;
+                }
+                @keyframes a11y-spin { to { transform: rotate(360deg); } }
+                
+                .a11y-loading-state { display: none; text-align: center; padding: 20px 0; }
+                .a11y-results-state { display: block; }
+                
+                .a11y-modal-card.is-loading .a11y-loading-state { display: block; }
+                .a11y-modal-card.is-loading .a11y-results-state { display: none; }
+                .a11y-modal-card.is-loading .a11y-modal-close { display: none; }
             `;
             document.head.appendChild(style);
         }
@@ -113,29 +132,42 @@
             const overlay = document.createElement('div');
             overlay.id = 'a11y-modal-overlay';
             overlay.innerHTML = `
-                <div class="a11y-modal-card">
+                <div class="a11y-modal-card" id="a11y-modal-card">
                     <button class="a11y-modal-close" onclick="document.getElementById('a11y-modal-overlay').classList.remove('active')">&times;</button>
-                    <div style="font-size: 40px; margin-bottom: 16px; text-align: center;">📊</div>
-                    <h2 style="text-align: center; margin-bottom: 8px; font-size: 22px;">Audit Complete</h2>
-                    <p id="a11y-modal-url" style="text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 24px; word-break: break-all;"></p>
                     
-                    <div class="a11y-score-row">
-                        <div class="a11y-score-box">
-                            <div id="a11y-score-val-a11y" class="a11y-score-val">--</div>
-                            <div class="a11y-score-label">Accessibility</div>
-                        </div>
-                        <div class="a11y-score-box">
-                            <div id="a11y-score-val-perf" class="a11y-score-val">--</div>
-                            <div class="a11y-score-label">Performance</div>
-                        </div>
+                    <!-- Loading State -->
+                    <div class="a11y-loading-state">
+                        <img src="${base}/MyIcon.png" style="width: 60px; height: auto; margin-bottom: 20px; animation: a11y-spin 2s infinite linear;">
+                        <h2 style="font-size: 20px; margin-bottom: 8px;">Analyzing Page...</h2>
+                        <p style="color: #94a3b8; font-size: 14px;">Running accessibility and performance audits.</p>
                     </div>
 
-                    <div class="a11y-detail-row">
-                        <span style="color: #94a3b8">Optimization Issues</span>
-                        <span id="a11y-modal-issues" style="font-weight: 600;">--</span>
-                    </div>
+                    <!-- Results State -->
+                    <div class="a11y-results-state">
+                        <div style="margin-bottom: 16px; text-align: center;">
+                            <img src="${base}/MyIcon.png" style="width: 60px; height: auto;">
+                        </div>
+                        <h2 style="text-align: center; margin-bottom: 8px; font-size: 22px;">Audit Complete</h2>
+                        <p id="a11y-modal-url" style="text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 24px; word-break: break-all;"></p>
+                        
+                        <div class="a11y-score-row">
+                            <div class="a11y-score-box">
+                                <div id="a11y-score-val-a11y" class="a11y-score-val">--</div>
+                                <div class="a11y-score-label">Accessibility</div>
+                            </div>
+                            <div class="a11y-score-box">
+                                <div id="a11y-score-val-perf" class="a11y-score-val">--</div>
+                                <div class="a11y-score-label">Performance</div>
+                            </div>
+                        </div>
 
-                    <a id="a11y-modal-link" href="#" target="_blank" class="a11y-btn-full">View Detailed Report</a>
+                        <div class="a11y-detail-row">
+                            <span style="color: #94a3b8">Optimization Issues</span>
+                            <span id="a11y-modal-issues" style="font-weight: 600;">--</span>
+                        </div>
+
+                        <a id="a11y-modal-link" href="#" target="_blank" class="a11y-btn-full">View Detailed Report</a>
+                    </div>
                 </div>
             `;
             document.body.appendChild(overlay);
@@ -147,8 +179,18 @@
         injectButton();
     }
 
-    function showResultModal(data) {
+    function showResultModal(data, isLoading = false) {
         const overlay = document.getElementById('a11y-modal-overlay');
+        const card = document.getElementById('a11y-modal-card');
+        
+        if (isLoading) {
+            card.classList.add('is-loading');
+            overlay.classList.add('active');
+            return;
+        }
+
+        card.classList.remove('is-loading');
+
         const a11yScore = data.scores.accessibility ?? 0;
         const perfScore = data.scores.performance ?? 0;
         const errors = data.accessibility?.stats?.errors ?? 0;
@@ -195,7 +237,7 @@
         btn.style.borderRadius = '4px';
         btn.style.textDecoration = 'none';
         btn.style.verticalAlign = 'middle';
-        btn.innerHTML = '♿ Analyze Page';
+        btn.innerHTML = `<img src="${window.location.origin}/MyIcon.png" style="height:14px; width:auto; vertical-align:middle; margin-right:5px;"> Analyze Page`;
         btn.title = 'Run an accessibility and performance audit for this page';
 
         btn.addEventListener('click', async function(e) {
@@ -206,7 +248,6 @@
             const alias = aliasInput ? aliasInput.value : '';
             
             // Construct target URL using current browser origin
-            // Fix: ensure no double slashes if alias is empty or starts with slash
             const base = window.location.origin;
             const targetUrl = base + '/' + alias.replace(/^\//,'');
 
@@ -215,10 +256,9 @@
             const apiKey = 'Kx9#mP2vN$qL8@wR5yT!';
 
             console.log('Starting A11y Audit for:', targetUrl);
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '⌛ Analyzing...';
-            btn.style.opacity = '0.7';
-            btn.style.pointerEvents = 'none';
+            
+            // Show modal immediately in loading state
+            showResultModal(null, true);
 
             try {
                 const res = await fetch(`${apiUrl}/api/v1/full-audit`, {
@@ -236,16 +276,14 @@
 
                 const data = await res.json();
                 
-                // 3. Display Results via Custom Tool-Style Modal
+                // 3. Update modal with final results
                 showResultModal(data);
 
             } catch (err) {
+                // If failed, close modal and show alert
+                document.getElementById('a11y-modal-overlay').classList.remove('active');
                 alert('Analysis failed: ' + err.message);
                 console.error(err);
-            } finally {
-                btn.innerHTML = originalText;
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
             }
         });
 
