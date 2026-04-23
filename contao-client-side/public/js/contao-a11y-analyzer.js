@@ -1,9 +1,9 @@
 (function () {
     'use strict';
 
-    function init() {
+    function init(skipStyles = false) {
         // 1. Inject Styles for the Tool-Style Modal
-        if (!document.getElementById('a11y-analyzer-styles')) {
+        if (!skipStyles && !document.getElementById('a11y-analyzer-styles')) {
             const style = document.createElement('style');
             style.id = 'a11y-analyzer-styles';
             style.innerHTML = `
@@ -80,7 +80,7 @@
                     letter-spacing: 0.05em;
                     color: #94a3b8;
                     font-weight: 600;
-                }
+                    }
                 .a11y-detail-row {
                     display: flex;
                     justify-content: space-between;
@@ -177,14 +177,21 @@
         }
 
         // Use MutationObserver for dynamic backend elements
-        const observer = new MutationObserver(() => injectButton());
-        observer.observe(document.body, { childList: true, subtree: true });
-        injectButton();
+        if (!skipStyles) {
+            injectButton();
+        }
     }
 
     function showResultModal(data, isLoading = false) {
-        const overlay = document.getElementById('a11y-modal-overlay');
-        const card = document.getElementById('a11y-modal-card');
+        let overlay = document.getElementById('a11y-modal-overlay');
+        let card = document.getElementById('a11y-modal-card');
+        
+        // If elements are missing (happens on dynamic Stimulus re-renders), re-init
+        if (!overlay || !card) {
+            init(true); // Call init but skip re-adding styles
+            overlay = document.getElementById('a11y-modal-overlay');
+            card = document.getElementById('a11y-modal-card');
+        }
 
         if (isLoading) {
             card.classList.add('is-loading');
@@ -221,13 +228,13 @@
         const tlButtons = document.getElementById('tl_buttons');
         if (!tlButtons) return;
 
-        // If the button is already perfectly in place, do nothing. 
-        // This solves the issue of Contao rewriting the HTML and blowing away our button.
+        // Re-check logic: Only proceed if the button is truly gone
         if (document.getElementById('a11y-analyzer-action')) return;
 
         // Create the button as an anchor tag to fit the header nicely
         const btn = document.createElement('a');
         btn.href = '#';
+        btn.id = 'a11y-analyzer-btn'; // Unique internal ID
         btn.className = 'header_a11y';
         btn.style.display = 'inline-block';
         btn.style.marginLeft = '10px';
@@ -292,40 +299,45 @@
         });
 
         // Smart Injection: Detect Contao Version Structure
-        const ul = tlButtons.querySelector('ul');
+        // 5.7+ uses a nested <ul> inside #tl_buttons with a specific stimulus target
+        let targetUl = tlButtons.querySelector('ul[data-contao--operations-menu-target="menu"]');
+        
+        if (!targetUl) {
+            targetUl = tlButtons.querySelector('ul'); // Fallback to any UL
+        }
 
-        if (ul) {
-            // Contao 5.7+ (ul/li operations submenu structure)
+        if (targetUl) {
+            // Contao 5.7+ (ul/li structure)
             const li = document.createElement('li');
-            li.id = 'a11y-analyzer-action';
+            li.id = 'a11y-analyzer-action'; // Unique container ID
             li.appendChild(btn);
-
-            if (ul.children.length > 0) {
-                ul.insertBefore(li, ul.children[1]);
+            
+            // Insert after the first item (usually "Go back")
+            if (targetUl.children.length > 0) {
+                targetUl.insertBefore(li, targetUl.children[1] || null);
             } else {
-                ul.appendChild(li);
+                targetUl.appendChild(li);
             }
         } else {
-            // Contao < 5.7 (Flat anchors directly inside #tl_buttons)
+            // Contao older versions (Flat anchors directly inside #tl_buttons)
             btn.id = 'a11y-analyzer-action';
-
             if (tlButtons.children.length > 0) {
-                // Insert directly after the first element (usually "Go back")
                 const nextEl = tlButtons.children[1] || null;
                 tlButtons.insertBefore(btn, nextEl);
             } else {
                 tlButtons.appendChild(btn);
             }
         }
+    }
 
-        // Fallback for Contao 5.7 variants where 'ul' might not be a direct child
-        if (!ul && tlButtons.querySelector('.tl_buttons_toolbar ul')) {
-            const innerUl = tlButtons.querySelector('.tl_buttons_toolbar ul');
-            const li = document.createElement('li');
-            li.id = 'a11y-analyzer-action';
-            li.appendChild(btn);
-            innerUl.insertBefore(li, innerUl.children[1] || null);
-        }
+    // High-frequency but throttled check to fight Stimulus deletions
+    let reInjectTimeout = null;
+    function throlledInject() {
+        if (reInjectTimeout) return;
+        reInjectTimeout = setTimeout(() => {
+            injectButton();
+            reInjectTimeout = null;
+        }, 50);
     }
 
     if (document.readyState === 'loading') {
@@ -333,4 +345,13 @@
     } else {
         init();
     }
+
+    // Persistence: Use MutationObserver to fight Stimulus/Turbo re-renders
+    const observer = new MutationObserver(throlledInject);
+    observer.observe(document.documentElement, { 
+        childList: true, 
+        subtree: true,
+        attributes: false,
+        characterData: false
+    });
 })();
