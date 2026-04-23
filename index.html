@@ -776,7 +776,22 @@
     }
 
     // Init
-    checkAuth();
+    async function initApp() {
+      await checkAuth();
+      
+      // Auto-analyze if URL param is present
+      const params = new URLSearchParams(window.location.search);
+      const autoUrl = params.get('url');
+      if (autoUrl && localStorage.getItem(APP_PASS_KEY)) {
+        $('url-input').value = autoUrl;
+        // Small delay to ensure UI is ready
+        setTimeout(() => {
+          $('analyze-form').requestSubmit();
+        }, 100);
+      }
+    }
+    
+    initApp();
   </script>
 </body>
 
