@@ -5,26 +5,29 @@ import re
 
 class Logic:
     @staticmethod
-    def run_audit(url):
-        req_headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        try:
-            # allow_redirects is True by default, but we'll capture the final URL
-            resp = requests.get(url, timeout=12, headers=req_headers, allow_redirects=True)
-            resp.raise_for_status()
-            # Capture the final URL after redirects (e.g. .com -> .at)
-            final_url = resp.url
-        except requests.exceptions.Timeout:
-            raise Exception(f"The website at {url} took too long to respond (Timeout).")
-        except requests.exceptions.ConnectionError:
-            raise Exception(f"Could not connect to {url}. The domain might not exist or is blocking the tool.")
-        except requests.exceptions.HTTPError as e:
-            raise Exception(f"The website returned an error: {e.response.status_code} {e.response.reason}")
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Failed to fetch the website: {str(e)}")
+    def run_audit(url, html=None):
+        if html:
+            resp_text = html
+            final_url = url
+        else:
+            req_headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            try:
+                resp = requests.get(url, timeout=12, headers=req_headers, allow_redirects=True)
+                resp.raise_for_status()
+                resp_text = resp.text
+                final_url = resp.url
+            except requests.exceptions.Timeout:
+                raise Exception(f"The website at {url} took too long to respond (Timeout).")
+            except requests.exceptions.ConnectionError:
+                raise Exception(f"Could not connect to {url}. The domain might not exist or is blocking the tool.")
+            except requests.exceptions.HTTPError as e:
+                raise Exception(f"The website returned an error: {e.response.status_code} {e.response.reason}")
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"Failed to fetch the website: {str(e)}")
 
-        soup = BeautifulSoup(resp.text, 'html.parser')
+        soup = BeautifulSoup(resp_text, 'html.parser')
         
         issues = []
         
@@ -198,6 +201,7 @@ class handler:
         try:
             data = json.loads(post_data)
             url = data.get('url')
+            html = data.get('html_data')
         except Exception:
             self.send_response(400)
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -205,15 +209,15 @@ class handler:
             self.wfile.write(b'{"error": "Invalid JSON"}')
             return
 
-        if not url:
+        if not url and not html:
             self.send_response(400)
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
-            self.wfile.write(b'{"error": "URL required"}')
+            self.wfile.write(b'{"error": "URL or HTML data required"}')
             return
 
         try:
-            results = Logic.run_audit(url)
+            results = Logic.run_audit(url, html)
             body = json.dumps(results).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")

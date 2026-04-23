@@ -224,13 +224,34 @@
             overlay.querySelector('#a11y-close-btn').style.display = 'none';
 
             try {
+                // 1. Fetch the frontend HTML locally (bypasses Vercel firewall/access issues)
+                overlay.querySelector('h2').textContent = 'Fetching Page Source…';
+                const pageRes = await fetch(targetUrl).catch(e => {
+                    throw new Error(`Connection failed: Browser could not reach ${targetUrl}. Is the local server running?`);
+                });
+                
+                if (!pageRes.ok) throw new Error(`Backend could not reach frontend: ${pageRes.status} ${pageRes.statusText}`);
+                const htmlSource = await pageRes.text();
+
+                // 2. Send to proxy for analysis
+                overlay.querySelector('h2').textContent = 'Analyzing Page…';
                 const res = await fetch(PROXY_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: targetUrl })
+                    body: JSON.stringify({ url: targetUrl, html_data: htmlSource })
                 });
 
-                if (!res.ok) throw new Error(`API returned ${res.status}: ${res.statusText}`);
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    let errMsg = `API returned ${res.status}`;
+                    try {
+                        const errJson = JSON.parse(errorText);
+                        errMsg = errJson.error || errMsg;
+                    } catch (e) {
+                        errMsg += `: ${res.statusText}`;
+                    }
+                    throw new Error(errMsg);
+                }
 
                 const data = await res.json();
                 showResults(overlay, data);

@@ -1,11 +1,15 @@
 <?php
 
 /**
- * A11y Analyzer API Proxy v1.0
+ * A11y Analyzer API Proxy v1.1
  * Bypasses CORS restrictions by handling requests server-side.
  *
  * DEBUG: set ?debug=1 in the URL to get extra info without sending to API.
  */
+
+// ── CONFIGURATION ─────────────────────────────────────────────────────────────
+define('DEFAULT_API_KEY', 'Kx9#mP2vN$qL8@wR5yT!');
+// ──────────────────────────────────────────────────────────────────────────────
 
 // Always return JSON — even for fatal errors
 header('Content-Type: application/json; charset=utf-8');
@@ -57,6 +61,11 @@ if (function_exists('getallheaders')) {
 // Method B: $_SERVER fallback (works on PHP-FPM / nginx)
 if (empty($api_key)) {
     $api_key = $_SERVER['HTTP_X_API_KEY'] ?? '';
+}
+
+// Method C: Hardcoded fallback
+if (empty($api_key)) {
+    $api_key = DEFAULT_API_KEY;
 }
 
 // ── 3. Debug mode ─────────────────────────────────────────────────────────────
