@@ -14,6 +14,7 @@ import lighthouse
 import lighthouse
 import sitemap
 import full_audit
+import proxy
 
 class handler(BaseHTTPRequestHandler):
 
@@ -102,6 +103,13 @@ class handler(BaseHTTPRequestHandler):
                 elif path == "/api/v1/full-audit":
                     if self.command == "POST":
                         full_audit.handler.do_POST(self)
+                    else:
+                        self.send_response(405)
+                        self.end_headers()
+                elif path == "/api/v1/proxy":
+                    if self.command == "POST":
+                        self._send_cors_headers()
+                        proxy.handler.do_POST(self)
                     else:
                         self.send_response(405)
                         self.end_headers()

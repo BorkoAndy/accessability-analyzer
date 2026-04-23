@@ -185,7 +185,7 @@
     function showResultModal(data, isLoading = false) {
         const overlay = document.getElementById('a11y-modal-overlay');
         const card = document.getElementById('a11y-modal-card');
-        
+
         if (isLoading) {
             card.classList.add('is-loading');
             overlay.classList.add('active');
@@ -200,7 +200,7 @@
         const alerts = data.accessibility?.stats?.alerts ?? 0;
 
         document.getElementById('a11y-modal-url').textContent = data.url;
-        
+
         const a11yEl = document.getElementById('a11y-score-val-a11y');
         a11yEl.textContent = a11yScore;
         a11yEl.style.color = a11yScore >= 90 ? '#10b981' : (a11yScore >= 50 ? '#f59e0b' : '#ef4444');
@@ -209,11 +209,11 @@
         perfEl.textContent = perfScore;
         perfEl.style.color = perfScore >= 90 ? '#10b981' : (perfScore >= 50 ? '#f59e0b' : '#ef4444');
 
-        document.getElementById('a11y-modal-issues').innerHTML = 
+        document.getElementById('a11y-modal-issues').innerHTML =
             `<span style="color:#ef4444">${errors}</span> / <span style="color:#f59e0b">${alerts}</span>`;
 
         document.getElementById('a11y-modal-link').href = `https://andy-a11y-analyzer.vercel.app?url=${encodeURIComponent(data.url)}`;
-        
+
         overlay.classList.add('active');
     }
 
@@ -244,23 +244,23 @@
         btn.innerHTML = `<img src="${iconUrl}" style="height:14px; width:auto; vertical-align:middle; margin-right:5px;"> Analyze Page`;
         btn.title = 'Run an accessibility and performance audit for this page';
 
-        btn.addEventListener('click', async function(e) {
+        btn.addEventListener('click', async function (e) {
             e.preventDefault();
 
             // 1. Determine URL to analyze automatically
             const aliasInput = document.querySelector('input[name="alias"]');
             const alias = aliasInput ? aliasInput.value : '';
-            
+
             // Construct target URL using current browser origin
             const base = window.location.origin;
-            const targetUrl = base + '/' + alias.replace(/^\//,'');
+            const targetUrl = base + '/' + alias.replace(/^\//, '');
 
             // 2. Hardcoded API connection details
             const apiUrl = 'https://andy-a11y-analyzer.vercel.app';
             const apiKey = 'Kx9#mP2vN$qL8@wR5yT!';
 
             console.log('Starting A11y Audit for:', targetUrl);
-            
+
             // Show modal immediately in loading state
             showResultModal(null, true);
 
@@ -279,7 +279,7 @@
                 }
 
                 const data = await res.json();
-                
+
                 // 3. Update modal with final results
                 showResultModal(data);
 
@@ -293,13 +293,13 @@
 
         // Smart Injection: Detect Contao Version Structure
         const ul = tlButtons.querySelector('ul');
-        
+
         if (ul) {
             // Contao 5.7+ (ul/li operations submenu structure)
             const li = document.createElement('li');
             li.id = 'a11y-analyzer-action';
             li.appendChild(btn);
-            
+
             if (ul.children.length > 0) {
                 ul.insertBefore(li, ul.children[1]);
             } else {
@@ -308,7 +308,7 @@
         } else {
             // Contao < 5.7 (Flat anchors directly inside #tl_buttons)
             btn.id = 'a11y-analyzer-action';
-            
+
             if (tlButtons.children.length > 0) {
                 // Insert directly after the first element (usually "Go back")
                 const nextEl = tlButtons.children[1] || null;
@@ -316,6 +316,15 @@
             } else {
                 tlButtons.appendChild(btn);
             }
+        }
+
+        // Fallback for Contao 5.7 variants where 'ul' might not be a direct child
+        if (!ul && tlButtons.querySelector('.tl_buttons_toolbar ul')) {
+            const innerUl = tlButtons.querySelector('.tl_buttons_toolbar ul');
+            const li = document.createElement('li');
+            li.id = 'a11y-analyzer-action';
+            li.appendChild(btn);
+            innerUl.insertBefore(li, innerUl.children[1] || null);
         }
     }
 
