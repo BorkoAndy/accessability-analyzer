@@ -1,13 +1,175 @@
 (function () {
     'use strict';
 
-    console.log('A11y Analyzer Contao Client Loaded');
-
     function init() {
+        // 1. Inject Styles for the Tool-Style Modal
+        if (!document.getElementById('a11y-analyzer-styles')) {
+            const style = document.createElement('style');
+            style.id = 'a11y-analyzer-styles';
+            style.innerHTML = `
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap');
+                
+                #a11y-modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(15, 23, 42, 0.85);
+                    backdrop-filter: blur(8px);
+                    z-index: 999999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-family: 'Outfit', sans-serif;
+                    opacity: 0;
+                    pointer-events: none;
+                    transition: opacity 0.3s ease;
+                }
+                #a11y-modal-overlay.active {
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+                .a11y-modal-card {
+                    background: #1e293b;
+                    border: 1px solid #334155;
+                    border-radius: 32px;
+                    width: 90%;
+                    max-width: 450px;
+                    padding: 40px;
+                    color: #f1f5f9;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    transform: translateY(20px);
+                    transition: transform 0.3s ease;
+                    position: relative;
+                }
+                #a11y-modal-overlay.active .a11y-modal-card {
+                    transform: translateY(0);
+                }
+                .a11y-modal-close {
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    background: transparent;
+                    border: none;
+                    color: #94a3b8;
+                    font-size: 24px;
+                    cursor: pointer;
+                    line-height: 1;
+                }
+                .a11y-modal-close:hover { color: #fff; }
+                
+                .a11y-score-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px;
+                    margin: 24px 0;
+                }
+                .a11y-score-box {
+                    background: #0f172a;
+                    border: 1px solid #334155;
+                    padding: 20px;
+                    border-radius: 20px;
+                    text-align: center;
+                }
+                .a11y-score-val {
+                    font-size: 32px;
+                    font-weight: 700;
+                    margin-bottom: 4px;
+                }
+                .a11y-score-label {
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    color: #94a3b8;
+                    font-weight: 600;
+                }
+                .a11y-detail-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 12px 16px;
+                    background: rgba(59, 130, 246, 0.05);
+                    border-radius: 12px;
+                    font-size: 14px;
+                    margin-top: 8px;
+                }
+                .a11y-btn-full {
+                    display: block;
+                    width: 100%;
+                    background: #3b82f6;
+                    color: white;
+                    text-align: center;
+                    padding: 14px;
+                    border-radius: 14px;
+                    text-decoration: none;
+                    font-weight: 600;
+                    margin-top: 24px;
+                    transition: background 0.2s;
+                }
+                .a11y-btn-full:hover { background: #2563eb; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // 2. Create the Modal element
+        if (!document.getElementById('a11y-modal-overlay')) {
+            const overlay = document.createElement('div');
+            overlay.id = 'a11y-modal-overlay';
+            overlay.innerHTML = `
+                <div class="a11y-modal-card">
+                    <button class="a11y-modal-close" onclick="document.getElementById('a11y-modal-overlay').classList.remove('active')">&times;</button>
+                    <div style="font-size: 40px; margin-bottom: 16px; text-align: center;">📊</div>
+                    <h2 style="text-align: center; margin-bottom: 8px; font-size: 22px;">Audit Complete</h2>
+                    <p id="a11y-modal-url" style="text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 24px; word-break: break-all;"></p>
+                    
+                    <div class="a11y-score-row">
+                        <div class="a11y-score-box">
+                            <div id="a11y-score-val-a11y" class="a11y-score-val">--</div>
+                            <div class="a11y-score-label">Accessibility</div>
+                        </div>
+                        <div class="a11y-score-box">
+                            <div id="a11y-score-val-perf" class="a11y-score-val">--</div>
+                            <div class="a11y-score-label">Performance</div>
+                        </div>
+                    </div>
+
+                    <div class="a11y-detail-row">
+                        <span style="color: #94a3b8">Optimization Issues</span>
+                        <span id="a11y-modal-issues" style="font-weight: 600;">--</span>
+                    </div>
+
+                    <a id="a11y-modal-link" href="#" target="_blank" class="a11y-btn-full">View Detailed Report</a>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
         // Use MutationObserver for dynamic backend elements
         const observer = new MutationObserver(() => injectButton());
         observer.observe(document.body, { childList: true, subtree: true });
         injectButton();
+    }
+
+    function showResultModal(data) {
+        const overlay = document.getElementById('a11y-modal-overlay');
+        const a11yScore = data.scores.accessibility ?? 0;
+        const perfScore = data.scores.performance ?? 0;
+        const errors = data.accessibility?.stats?.errors ?? 0;
+        const alerts = data.accessibility?.stats?.alerts ?? 0;
+
+        document.getElementById('a11y-modal-url').textContent = data.url;
+        
+        const a11yEl = document.getElementById('a11y-score-val-a11y');
+        a11yEl.textContent = a11yScore;
+        a11yEl.style.color = a11yScore >= 90 ? '#10b981' : (a11yScore >= 50 ? '#f59e0b' : '#ef4444');
+
+        const perfEl = document.getElementById('a11y-score-val-perf');
+        perfEl.textContent = perfScore;
+        perfEl.style.color = perfScore >= 90 ? '#10b981' : (perfScore >= 50 ? '#f59e0b' : '#ef4444');
+
+        document.getElementById('a11y-modal-issues').innerHTML = 
+            `<span style="color:#ef4444">${errors}</span> / <span style="color:#f59e0b">${alerts}</span>`;
+
+        document.getElementById('a11y-modal-link').href = `https://andy-a11y-analyzer.vercel.app?url=${encodeURIComponent(data.url)}`;
+        
+        overlay.classList.add('active');
     }
 
     function injectButton() {
@@ -44,7 +206,9 @@
             const alias = aliasInput ? aliasInput.value : '';
             
             // Construct target URL using current browser origin
-            const targetUrl = window.location.origin + '/' + alias;
+            // Fix: ensure no double slashes if alias is empty or starts with slash
+            const base = window.location.origin;
+            const targetUrl = base + '/' + alias.replace(/^\//,'');
 
             // 2. Hardcoded API connection details
             const apiUrl = 'https://andy-a11y-analyzer.vercel.app';
@@ -72,19 +236,8 @@
 
                 const data = await res.json();
                 
-                // 3. Display Results via Alert Window
-                const a11yScore = data.scores.accessibility ?? 0;
-                const perfScore = data.scores.performance ?? 0;
-                const errors = data.accessibility?.stats?.errors ?? 0;
-                const alerts = data.accessibility?.stats?.alerts ?? 0;
-
-                alert(
-                    `📊 Audit Results for ${data.url}\n\n` +
-                    `✅ Accessibility Score: ${a11yScore}/100\n` +
-                    `⚡ Performance Score: ${perfScore}/100\n\n` +
-                    `⚠️ Issues: ${errors} Errors, ${alerts} Alerts\n\n` +
-                    `Full report available at the Analyzer App.`
-                );
+                // 3. Display Results via Custom Tool-Style Modal
+                showResultModal(data);
 
             } catch (err) {
                 alert('Analysis failed: ' + err.message);
