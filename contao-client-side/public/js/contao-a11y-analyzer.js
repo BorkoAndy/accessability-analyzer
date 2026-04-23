@@ -137,7 +137,10 @@
                     
                     <!-- Loading State -->
                     <div class="a11y-loading-state">
-                        <img src="https://andy-a11y-analyzer.vercel.app/MyIcon.png" style="width: 60px; height: auto; margin-bottom: 20px; animation: a11y-spin 2s infinite linear;">
+                        <div style="margin-bottom: 24px; text-align: center;">
+                            <img src="https://andy-a11y-analyzer.vercel.app/MyIcon.png" style="width: 60px; height: auto;">
+                        </div>
+                        <div class="a11y-loader"></div>
                         <h2 style="font-size: 20px; margin-bottom: 8px;">Analyzing Page...</h2>
                         <p style="color: #94a3b8; font-size: 14px;">Running accessibility and performance audits.</p>
                     </div>
